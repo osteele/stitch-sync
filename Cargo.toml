@@ -1,0 +1,18 @@
+[package]
+name = "dst2jef"
+version = "0.1.0"
+edition = "2021"
+authors = ["Oliver Steele <steele@osteele.com>"]
+description = "Automatically convert DST embroidery files to JEF format using Inkscape and ink/stitch"
+license = "MIT"
+repository = "https://github.com/yourusername/dst2jef"
+keywords = ["embroidery", "conversion", "inkscape", "dst", "jef"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+notify = "5.0"
+which = "4.4"
+dirs = "5.0"
+termion = "2.0"
+clap = { version = "4.4", features = ["derive"] }
+ctrlc = "3.4"
