@@ -25,17 +25,11 @@ new DST files and automatically converts them when they appear.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dst2jef
+git clone https://github.com/osteele/dst2jef
 cd dst2jef
 
 # Build and install
 cargo install --path .
-```
-
-Or install directly from crates.io:
-
-```bash
-cargo install dst2jef
 ```
 
 ## Usage

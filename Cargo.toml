@@ -9,6 +9,9 @@ repository = "https://github.com/yourusername/dst2jef"
 keywords = ["embroidery", "conversion", "inkscape", "dst", "jef"]
 categories = ["command-line-utilities"]
 
+[dev-dependencies]
+cargo-husky = { version = "1", default-features = false, features = ["precommit-hook", "run-cargo-test"] }
+
 [dependencies]
 notify = "5.0"
 which = "4.4"
