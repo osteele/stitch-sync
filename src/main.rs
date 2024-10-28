@@ -70,9 +70,15 @@ fn handle_file_creation(
         return Ok(());
     }
 
-    println!("New DST file detected: {}", path.display());
+    // Switch to normal mode temporarily
+    let mut stdout = io::stdout();
+    write!(stdout, "{}", termion::cursor::Show)?;
+    stdout.flush()?;
+
+    println!("\rNew DST file detected: {}", path.display());
     let output_path = sanitize_filename(path);
 
+    println!("\rConverting to JEF using Inkscape...");
     let output = Command::new(&inkscape_info.path)
         .arg(path)
         .arg("--export-filename")
@@ -82,20 +88,25 @@ fn handle_file_creation(
     if !output.status.success() {
         let error = String::from_utf8_lossy(&output.stderr);
         if error.contains("extension not found") || error.contains("unknown extension") {
-            println!("ink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
+            println!("\rink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
         } else {
-            println!("Error converting file: {}", error);
+            println!("\rError converting file: {}", error);
         }
         return Ok(());
     }
 
-    println!("Converted to JEF: {}", output_path.display());
+    println!("\rConverted to JEF: {}", output_path.display());
 
     if let Some(ref embf_dir) = embf_dir {
         let dest = embf_dir.join(output_path.file_name().unwrap());
         std::fs::copy(&output_path, &dest)?;
-        println!("Copied to EMB directory: {}", dest.display());
+        println!("\rCopied to EMB directory: {}", dest.display());
     }
+
+    // Return to raw mode when done
+    let mut stdout = io::stdout().into_raw_mode()?;
+    write!(stdout, "{}", termion::cursor::Hide)?;
+    stdout.flush()?;
 
     Ok(())
 }
@@ -105,23 +116,20 @@ fn handle_key_event(
     stdout: &mut io::Stdout,
     embf_dir: &mut Option<PathBuf>,
 ) -> Result<bool, io::Error> {
-    match key {
+    // Show cursor before handling event
+    write!(stdout, "{}", termion::cursor::Show)?;
+    stdout.flush()?;
+
+    let result = match key {
         Key::Char('q') | Key::Ctrl('c') | Key::Ctrl('z') => {
-            write!(stdout, "{}", termion::cursor::Show)?;
-            println!("\nStopping file watcher...");
+            println!("\n\rStopping file watcher...");
             Ok(true) // Signal to stop watching
         }
         Key::Char('t') => {
-            write!(stdout, "{}", termion::cursor::Show)?;
-            stdout.flush()?;
-
             if let Some(new_dir) = select_copy_target_directory() {
                 *embf_dir = Some(new_dir);
                 println!("New target directory set.");
             }
-
-            let mut stdout = io::stdout().into_raw_mode()?;
-            write!(stdout, "{}", termion::cursor::Hide)?;
             Ok(false)
         }
         Key::Char('u') => {
@@ -129,7 +137,14 @@ fn handle_key_event(
             Ok(false)
         }
         _ => Ok(false),
-    }
+    };
+
+    // Hide cursor and return to raw mode after handling event
+    let mut raw_stdout = stdout.into_raw_mode()?;
+    write!(raw_stdout, "{}", termion::cursor::Hide)?;
+    raw_stdout.flush()?;
+
+    result
 }
 
 // Add a new enum to handle both types of events
@@ -191,11 +206,20 @@ fn watch_directory(
             }
             Ok(WatcherEvent::File(Ok(event))) => match event.kind {
                 notify::EventKind::Create(_) => {
+                    // Show cursor before handling event
+                    write!(stdout, "{}", termion::cursor::Show).unwrap_or_default();
+                    stdout.flush().unwrap_or_default();
+
                     for path in event.paths {
                         if let Err(e) = handle_file_creation(&path, &inkscape_info, &embf_dir) {
                             eprintln!("Error handling file creation: {}", e);
                         }
                     }
+
+                    // Hide cursor and return to raw mode after handling event
+                    let mut stdout = io::stdout().into_raw_mode().unwrap();
+                    write!(stdout, "{}", termion::cursor::Hide).unwrap_or_default();
+                    stdout.flush().unwrap_or_default();
                 }
                 _ => (),
             },
@@ -257,7 +281,6 @@ fn main() {
     // Create watcher with modified event sending
     let mut watcher = match RecommendedWatcher::new(
         move |res| {
-            eprintln!("event: {:?}", res);
             if let Err(e) = fs_tx.send(WatcherEvent::File(res)) {
                 eprintln!("Error sending event through channel: {:?}", e);
             }
@@ -302,7 +325,7 @@ fn main() {
     let _watcher_guard = watcher;
 
     watch_directory(watch_dir, rx, inkscape_info, embf_dir, running);
-    println!("File watcher stopped.");
+    println!("\n\rFile watcher stopped.");
 
     write!(io::stdout(), "{}", termion::cursor::Show).unwrap_or_default();
 }
