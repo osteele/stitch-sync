@@ -16,6 +16,6 @@ cargo-husky = { version = "1", default-features = false, features = ["precommit-
 notify = "5.0"
 which = "4.4"
 dirs = "5.0"
-termion = "2.0"
+crossterm = "0.27"
 clap = { version = "4.4", features = ["derive"] }
 ctrlc = "3.4"

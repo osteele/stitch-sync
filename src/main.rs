@@ -2,27 +2,27 @@ mod inkscape;
 mod usb_drive;
 mod utils;
 
-// External crate imports
 use clap::Parser;
+use crossterm::cursor;
+use crossterm::execute;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    terminal::{disable_raw_mode, enable_raw_mode},
+};
 use ctrlc;
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Config, Event as NotifyEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
-use termion::async_stdin;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
 
-// Standard library imports
 use std::error::Error;
 use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
+use std::time::Instant;
 
-// Internal crate imports
 use crate::inkscape::InkscapeInfo;
 use crate::usb_drive::{find_embf_directory, unmount_usb_volume};
 use crate::utils::sanitize_filename;
@@ -40,8 +40,8 @@ struct Args {
 fn select_copy_target_directory() -> Option<PathBuf> {
     // Switch to normal mode
     let mut stdout = io::stdout();
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
-    stdout.flush().unwrap();
+    disable_raw_mode().unwrap();
+    execute!(stdout, cursor::Show).unwrap();
 
     println!("Please enter the path to the target directory:");
     let mut input = String::new();
@@ -49,8 +49,8 @@ fn select_copy_target_directory() -> Option<PathBuf> {
     let path = PathBuf::from(input.trim());
 
     // Switch back to raw mode
-    let mut stdout = io::stdout().into_raw_mode().unwrap();
-    write!(stdout, "{}", termion::cursor::Hide).unwrap();
+    enable_raw_mode().unwrap();
+    execute!(stdout, cursor::Hide).unwrap();
 
     if path.exists() && path.is_dir() {
         Some(path)
@@ -66,101 +66,87 @@ fn handle_file_creation(
     inkscape_info: &InkscapeInfo,
     embf_dir: &Option<PathBuf>,
 ) -> Result<(), Box<dyn Error>> {
+    let mut stdout = io::stdout();
     if path.extension() != Some(OsStr::new("dst")) {
         return Ok(());
     }
 
-    // Switch to normal mode temporarily
-    let mut stdout = io::stdout();
-    write!(stdout, "{}", termion::cursor::Show)?;
+    disable_raw_mode().unwrap();
+
+    println!("New DST file detected: {}", path.display());
+    print!("Converting {} to JEF using Inkscape...", path.display());
     stdout.flush()?;
-
-    println!("\rNew DST file detected: {}", path.display());
     let output_path = sanitize_filename(path);
-
-    println!("\rConverting to JEF using Inkscape...");
+    let start = Instant::now();
     let output = Command::new(&inkscape_info.path)
         .arg(path)
         .arg("--export-filename")
         .arg(&output_path)
         .output()?;
+    println!();
 
     if !output.status.success() {
         let error = String::from_utf8_lossy(&output.stderr);
         if error.contains("extension not found") || error.contains("unknown extension") {
-            println!("\rink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
+            println!("ink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
         } else {
-            println!("\rError converting file: {}", error);
+            println!("Error converting file: {}", error);
         }
+        enable_raw_mode().unwrap();
         return Ok(());
     }
 
-    println!("\rConverted to JEF: {}", output_path.display());
+    let elapsed = start.elapsed();
+    println!(
+        "Converted to JEF: {} ({:.2}s)",
+        output_path.display(),
+        elapsed.as_secs_f32()
+    );
 
     if let Some(ref embf_dir) = embf_dir {
         let dest = embf_dir.join(output_path.file_name().unwrap());
         std::fs::copy(&output_path, &dest)?;
-        println!("\rCopied to EMB directory: {}", dest.display());
+        println!("Copied to EMB directory: {}", dest.display());
     }
 
     // Return to raw mode when done
-    let mut stdout = io::stdout().into_raw_mode()?;
-    write!(stdout, "{}", termion::cursor::Hide)?;
-    stdout.flush()?;
+    // execute!(stdout, cursor::Hide).unwrap();
+    enable_raw_mode().unwrap();
+    // execute!(stdout, cursor::Hide).unwrap();
 
     Ok(())
 }
 
-fn handle_key_event(
-    key: Key,
-    stdout: &mut io::Stdout,
-    embf_dir: &mut Option<PathBuf>,
-) -> Result<bool, io::Error> {
-    // Show cursor before handling event
-    write!(stdout, "{}", termion::cursor::Show)?;
-    stdout.flush()?;
-
-    let result = match key {
-        Key::Char('q') | Key::Ctrl('c') | Key::Ctrl('z') => {
-            println!("\n\rStopping file watcher...");
-            Ok(true) // Signal to stop watching
-        }
-        Key::Char('t') => {
+// Returns true if the program should exit
+fn handle_key_event(key: KeyEvent, embf_dir: &mut Option<PathBuf>) -> Result<bool, io::Error> {
+    match (key.code, key.modifiers.contains(KeyModifiers::CONTROL)) {
+        (KeyCode::Char('q'), _) | (KeyCode::Char('c'), true) => Ok(true),
+        (KeyCode::Char('t'), _) => {
             if let Some(new_dir) = select_copy_target_directory() {
                 *embf_dir = Some(new_dir);
                 println!("New target directory set.");
             }
             Ok(false)
         }
-        Key::Char('u') => {
+        (KeyCode::Char('u'), _) => {
             unmount_usb_volume();
             Ok(false)
         }
         _ => Ok(false),
-    };
-
-    // Hide cursor and return to raw mode after handling event
-    let mut raw_stdout = stdout.into_raw_mode()?;
-    write!(raw_stdout, "{}", termion::cursor::Hide)?;
-    raw_stdout.flush()?;
-
-    result
+    }
 }
 
-// Add a new enum to handle both types of events
+// Remove the Keyboard variant as we'll handle keyboard events directly
 #[derive(Debug)]
 enum WatcherEvent {
-    File(notify::Result<Event>),
-    Keyboard(Key),
+    File(notify::Result<NotifyEvent>),
 }
 
-// Update the watch_directory signature and implementation
 fn watch_directory(
     path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
     inkscape_info: InkscapeInfo,
     mut embf_dir: Option<PathBuf>,
-    running: Arc<AtomicBool>,
 ) {
     let warn_inkstitch = false;
 
@@ -174,80 +160,58 @@ fn watch_directory(
     }
 
     println!("Watching directory: {}", path.as_ref().display());
-
     println!("Press 'q' to quit, 't' to select target directory, 'u' to unmount USB volume");
 
-    let mut stdout = match io::stdout().into_raw_mode() {
-        Ok(stdout) => stdout,
-        Err(e) => {
-            eprintln!("Error setting up terminal: {}", e);
-            return;
-        }
-    };
+    enable_raw_mode().unwrap();
 
-    if let Err(e) = write!(stdout, "{}", termion::cursor::Hide) {
-        eprintln!("Error hiding cursor: {}", e);
-        return;
-    }
+    const POLL_DURATION: Duration = Duration::from_millis(100);
 
-    const SLEEP_DURATION: Duration = Duration::from_millis(100);
-
-    while running.load(Ordering::SeqCst) {
-        match event_rx.recv_timeout(SLEEP_DURATION) {
-            Ok(WatcherEvent::Keyboard(key)) => {
-                match handle_key_event(key, &mut stdout, &mut embf_dir) {
-                    Ok(true) => return, // Exit requested
-                    Ok(false) => (),    // Continue watching
-                    Err(e) => {
-                        eprintln!("Error handling key event: {}", e);
-                        return;
-                    }
-                }
-            }
-            Ok(WatcherEvent::File(Ok(event))) => match event.kind {
-                notify::EventKind::Create(_) => {
-                    // Show cursor before handling event
-                    write!(stdout, "{}", termion::cursor::Show).unwrap_or_default();
-                    stdout.flush().unwrap_or_default();
-
-                    for path in event.paths {
-                        if let Err(e) = handle_file_creation(&path, &inkscape_info, &embf_dir) {
-                            eprintln!("Error handling file creation: {}", e);
+    'main: loop {
+        // Check both keyboard and file events in each iteration
+        while let Ok(event) = event_rx.try_recv() {
+            match event {
+                WatcherEvent::File(Ok(event)) => {
+                    if let notify::EventKind::Create(_) = event.kind {
+                        for path in event.paths {
+                            if let Err(e) = handle_file_creation(&path, &inkscape_info, &embf_dir) {
+                                eprintln!("Error handling file creation: {}", e);
+                            }
                         }
                     }
-
-                    // Hide cursor and return to raw mode after handling event
-                    let mut stdout = io::stdout().into_raw_mode().unwrap();
-                    write!(stdout, "{}", termion::cursor::Hide).unwrap_or_default();
-                    stdout.flush().unwrap_or_default();
                 }
-                _ => (),
-            },
-            Ok(WatcherEvent::File(Err(e))) => println!("Error receiving file event: {}", e),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => (),
-            Err(e) => {
-                eprintln!("Error receiving event: {}", e);
-                return;
+                WatcherEvent::File(Err(e)) => println!("Error receiving file event: {}", e),
+            }
+        }
+
+        // Check for keyboard input
+        if event::poll(POLL_DURATION).unwrap() {
+            if let Event::Key(key) = event::read().unwrap() {
+                match handle_key_event(key, &mut embf_dir) {
+                    Ok(true) => break 'main, // Exit requested
+                    Ok(false) => (),         // Continue watching
+                    Err(e) => {
+                        eprintln!("Error handling key event: {}", e);
+                        break 'main;
+                    }
+                }
             }
         }
     }
 
-    // Cleanup when exiting
-    write!(stdout, "{}", termion::cursor::Show).unwrap_or_default();
-    println!("\nStopping file watcher...");
+    disable_raw_mode().unwrap();
 }
 
 fn main() {
     let args = Args::parse();
 
-    // Set up signal handlers with terminal cleanup early
+    // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
-    let mut stdout_cleanup = io::stdout();
     ctrlc::set_handler(move || {
         r.store(false, Ordering::SeqCst);
-        // Restore terminal on Ctrl-C
-        write!(stdout_cleanup, "{}", termion::cursor::Show).unwrap_or_default();
+        disable_raw_mode().unwrap();
+        println!("Stopping file watcher signal...");
+        disable_raw_mode().unwrap();
     })
     .expect("Error setting Ctrl-C handler");
 
@@ -276,9 +240,8 @@ fn main() {
     );
 
     let (fs_tx, rx) = channel();
-    let kbd_tx = fs_tx.clone();
 
-    // Create watcher with modified event sending
+    // Create watcher with simplified event sending
     let mut watcher = match RecommendedWatcher::new(
         move |res| {
             if let Err(e) = fs_tx.send(WatcherEvent::File(res)) {
@@ -296,36 +259,15 @@ fn main() {
 
     // Set up watching with error handling
     match watcher.watch(&watch_dir, RecursiveMode::NonRecursive) {
-        Ok(_) => eprintln!("Successfully set up directory watching"),
+        Ok(_) => (),
         Err(e) => {
             eprintln!("Failed to watch directory: {:?}", e);
             return;
         }
     };
 
-    // Spawn keyboard input thread
-    std::thread::spawn(move || {
-        let stdin = async_stdin();
-        let mut keys = stdin.keys();
-        loop {
-            if let Some(Ok(key)) = keys.next() {
-                if let Err(e) = kbd_tx.send(WatcherEvent::Keyboard(key)) {
-                    eprintln!("Error sending keyboard event: {:?}", e);
-                    break;
-                }
-            }
-            // Add a small sleep to prevent busy-waiting
-            std::thread::sleep(Duration::from_millis(50));
-        }
-    });
-
     let embf_dir = find_embf_directory();
 
-    // Store watcher in a variable to keep it alive
-    let _watcher_guard = watcher;
-
-    watch_directory(watch_dir, rx, inkscape_info, embf_dir, running);
-    println!("\n\rFile watcher stopped.");
-
-    write!(io::stdout(), "{}", termion::cursor::Show).unwrap_or_default();
+    watch_directory(watch_dir, rx, inkscape_info, embf_dir);
+    println!("File watcher stopped.");
 }
