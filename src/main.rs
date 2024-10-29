@@ -73,14 +73,26 @@ fn handle_file_creation(
     stdout.flush()?;
     let output_path = sanitize_filename(path);
     let start = Instant::now();
-    let output = Command::new(&inkscape_info.path)
+
+    // Start the command
+    let mut child = Command::new(&inkscape_info.path)
         .arg(path)
         .arg("--export-filename")
         .arg(&output_path)
-        .output()?;
-    println!();
+        .spawn()?;
 
-    if !output.status.success() {
+    // Print dots while waiting
+    let dot_interval = Duration::from_secs(1);
+    let poll_interval = Duration::from_millis(50);
+    utils::wait_with_progress(&mut child, dot_interval, poll_interval)?;
+
+    // Get the final status
+    let status = child.wait()?;
+    println!("done");
+
+    if !status.success() {
+        // Get error output
+        let output = child.wait_with_output()?;
         let error = String::from_utf8_lossy(&output.stderr);
         if error.contains("extension not found") || error.contains("unknown extension") {
             println!("ink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
