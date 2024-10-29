@@ -27,6 +27,8 @@ use crate::inkscape::InkscapeInfo;
 use crate::usb_drive::{find_embf_directory, unmount_usb_volume};
 use crate::utils::sanitize_filename;
 
+use scopeguard::defer;
+
 /// Convert DST embroidery files to JEF format using Inkscape with ink/stitch
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -40,17 +42,12 @@ struct Args {
 fn select_copy_target_directory() -> Option<PathBuf> {
     // Switch to normal mode
     let mut stdout = io::stdout();
-    disable_raw_mode().unwrap();
     execute!(stdout, cursor::Show).unwrap();
 
     println!("Please enter the path to the target directory:");
     let mut input = String::new();
     io::stdin().read_line(&mut input).ok()?;
     let path = PathBuf::from(input.trim());
-
-    // Switch back to raw mode
-    enable_raw_mode().unwrap();
-    execute!(stdout, cursor::Hide).unwrap();
 
     if path.exists() && path.is_dir() {
         Some(path)
@@ -71,9 +68,7 @@ fn handle_file_creation(
         return Ok(());
     }
 
-    disable_raw_mode().unwrap();
-
-    println!("New DST file detected: {}", path.display());
+    println!("New file detected: {}", path.display());
     print!("Converting {} to JEF using Inkscape...", path.display());
     stdout.flush()?;
     let output_path = sanitize_filename(path);
@@ -92,7 +87,6 @@ fn handle_file_creation(
         } else {
             println!("Error converting file: {}", error);
         }
-        enable_raw_mode().unwrap();
         return Ok(());
     }
 
@@ -108,11 +102,6 @@ fn handle_file_creation(
         std::fs::copy(&output_path, &dest)?;
         println!("Copied to EMB directory: {}", dest.display());
     }
-
-    // Return to raw mode when done
-    // execute!(stdout, cursor::Hide).unwrap();
-    enable_raw_mode().unwrap();
-    // execute!(stdout, cursor::Hide).unwrap();
 
     Ok(())
 }
@@ -163,12 +152,16 @@ fn watch_directory(
     println!("Press 'q' to quit, 't' to select target directory, 'u' to unmount USB volume");
 
     enable_raw_mode().unwrap();
+    defer! {
+        disable_raw_mode().unwrap();
+    }
 
     const POLL_DURATION: Duration = Duration::from_millis(100);
 
     'main: loop {
         // Check both keyboard and file events in each iteration
         while let Ok(event) = event_rx.try_recv() {
+            disable_raw_mode().unwrap();
             match event {
                 WatcherEvent::File(Ok(event)) => {
                     if let notify::EventKind::Create(_) = event.kind {
@@ -181,11 +174,13 @@ fn watch_directory(
                 }
                 WatcherEvent::File(Err(e)) => println!("Error receiving file event: {}", e),
             }
+            enable_raw_mode().unwrap();
         }
 
         // Check for keyboard input
         if event::poll(POLL_DURATION).unwrap() {
             if let Event::Key(key) = event::read().unwrap() {
+                disable_raw_mode().unwrap();
                 match handle_key_event(key, &mut embf_dir) {
                     Ok(true) => break 'main, // Exit requested
                     Ok(false) => (),         // Continue watching
@@ -195,10 +190,9 @@ fn watch_directory(
                     }
                 }
             }
+            enable_raw_mode().unwrap();
         }
     }
-
-    disable_raw_mode().unwrap();
 }
 
 fn main() {
@@ -209,9 +203,6 @@ fn main() {
     let r = running.clone();
     ctrlc::set_handler(move || {
         r.store(false, Ordering::SeqCst);
-        disable_raw_mode().unwrap();
-        println!("Stopping file watcher signal...");
-        disable_raw_mode().unwrap();
     })
     .expect("Error setting Ctrl-C handler");
 

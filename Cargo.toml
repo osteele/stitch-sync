@@ -19,3 +19,4 @@ dirs = "5.0"
 crossterm = "0.27"
 clap = { version = "4.4", features = ["derive"] }
 ctrlc = "3.4"
+scopeguard = "1.2"
