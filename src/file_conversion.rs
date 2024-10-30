@@ -67,17 +67,32 @@ fn convert_file(
         .arg(path)
         .arg("--export-filename")
         .arg(&output_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
         .spawn()?;
 
     let dot_interval = Duration::from_secs(1);
     let poll_interval = Duration::from_millis(50);
     utils::wait_with_progress(&mut child, dot_interval, poll_interval)?;
 
-    let status = child.wait()?;
+    let output = child.wait_with_output()?;
+
+    if !output.stdout.is_empty() {
+        println!(
+            "\nInkscape output: {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
+    if !output.stderr.is_empty() {
+        println!(
+            "\nInkscape error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
     println!("done");
 
-    if !status.success() {
-        let output = child.wait_with_output()?;
+    if !output.status.success() {
         let error = String::from_utf8_lossy(&output.stderr);
         if error.contains("extension not found") || error.contains("unknown extension") {
             println!("ink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
@@ -89,7 +104,7 @@ fn convert_file(
 
     let elapsed = start.elapsed();
     println!(
-        "Converted to {} format: {} ({:.2}s elapsed time)",
+        "  Converted to {} format: {} ({:.2}s elapsed time)",
         output_format,
         output_path.display(),
         elapsed.as_secs_f32()
