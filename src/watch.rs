@@ -2,8 +2,13 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use ctrlc;
 use notify::Event as NotifyEvent;
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use scopeguard::defer;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::channel;
+use std::sync::Arc;
 
 use std::io::{self};
 use std::path::Path;
@@ -11,6 +16,8 @@ use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
+use crate::inkscape;
+use crate::machines;
 use crate::usb_drive::unmount_usb_volume;
 use crate::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
 
@@ -19,11 +26,112 @@ pub enum WatcherEvent {
     File(notify::Result<NotifyEvent>),
 }
 
+pub fn watch(
+    watch_dir: Option<PathBuf>,
+    copy_target_dir: Option<PathBuf>,
+    output_format: Option<String>,
+    machine: Option<String>,
+) {
+    // Set up signal handlers
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    let inkscape_info = match inkscape::find_inkscape() {
+        Some(info) => info,
+        None => {
+            println!("Inkscape not found. Please download and install from https://inkscape.org/release/1.4/mac-os-x/");
+            return;
+        }
+    };
+
+    // Determine accepted formats and preferred format
+    let (accepted_formats, preferred_format) = match &machine {
+        Some(name) => match machines::get_machine_info(name) {
+            Some(info) => {
+                let formats: Vec<String> = info
+                    .formats
+                    .iter()
+                    .map(|f| f.extension.to_string())
+                    .collect();
+                let preferred = output_format
+                    .or_else(|| formats.first().map(|s| s.to_string()))
+                    .unwrap_or_else(|| "dst".to_string());
+                (formats, preferred)
+            }
+            None => {
+                println!("Machine '{}' not found", name);
+                return;
+            }
+        },
+        None => {
+            let preferred = output_format.unwrap_or_else(|| "dst".to_string());
+            (vec![preferred.clone()], preferred)
+        }
+    };
+
+    let watch_dir = watch_dir.unwrap_or_else(|| {
+        dirs::home_dir()
+            .expect("Could not find home directory")
+            .join("Downloads")
+    });
+
+    if !watch_dir.exists() {
+        println!("Directory does not exist: {}", watch_dir.display());
+        return;
+    }
+
+    println!(
+        "Setting up file watcher for directory: {}",
+        watch_dir.display()
+    );
+
+    let (fs_tx, rx) = channel();
+
+    // Create watcher with simplified event sending
+    let mut watcher = match RecommendedWatcher::new(
+        move |res| {
+            if let Err(e) = fs_tx.send(WatcherEvent::File(res)) {
+                eprintln!("Error sending event through channel: {:?}", e);
+            }
+        },
+        Config::default(),
+    ) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("Failed to create watcher: {:?}", e);
+            return;
+        }
+    };
+
+    // Set up watching with error handling
+    match watcher.watch(&watch_dir, RecursiveMode::NonRecursive) {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!("Failed to watch directory: {:?}", e);
+            return;
+        }
+    };
+
+    watch_directory(
+        watch_dir,
+        rx,
+        inkscape_info,
+        copy_target_dir,
+        accepted_formats,
+        preferred_format,
+    );
+    println!("File watcher stopped.");
+}
+
 pub fn watch_directory(
     path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
     inkscape_info: InkscapeInfo,
-    embf_dir: Option<PathBuf>,
+    copy_target_dir: Option<PathBuf>,
     accepted_formats: Vec<String>,
     preferred_format: String,
 ) {
@@ -33,7 +141,7 @@ pub fn watch_directory(
         println!("Warning: ink/stitch extension not found. Please install from https://inkstitch.org/docs/install/");
     }
 
-    if let Some(ref dir) = embf_dir {
+    if let Some(ref dir) = copy_target_dir {
         println!("Found EMB directory: {}", dir.display());
         println!("Files will be copied to this directory");
     }
@@ -59,7 +167,7 @@ pub fn watch_directory(
                             if let Err(e) = handle_file_creation(
                                 &path,
                                 &inkscape_info,
-                                &embf_dir,
+                                &copy_target_dir,
                                 &accepted_formats,
                                 &preferred_format,
                             ) {

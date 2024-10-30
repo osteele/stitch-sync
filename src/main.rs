@@ -7,18 +7,8 @@ mod utils;
 mod watch;
 
 use clap::Parser;
-use crossterm::cursor;
-use crossterm::execute;
-use ctrlc;
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
-use watch::watch_directory;
-use watch::WatcherEvent;
 
-use std::io::{self};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::channel;
-use std::sync::Arc;
 
 use crate::file_formats::FILE_FORMATS;
 use crate::usb_drive::find_embf_directory;
@@ -98,6 +88,15 @@ fn list_machines_command(format: Option<String>) {
     }
 }
 
+fn watch_command(
+    watch_dir: Option<PathBuf>,
+    output_format: Option<String>,
+    machine: Option<String>,
+) {
+    let copy_target_dir = find_embf_directory();
+    watch::watch(watch_dir, copy_target_dir, output_format, machine);
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -148,102 +147,4 @@ fn main() {
             }
         }
     }
-}
-
-fn watch_command(dir: Option<PathBuf>, output_format: Option<String>, machine: Option<String>) {
-    // Set up signal handlers
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    let inkscape_info = match inkscape::find_inkscape() {
-        Some(info) => info,
-        None => {
-            println!("Inkscape not found. Please download and install from https://inkscape.org/release/1.4/mac-os-x/");
-            return;
-        }
-    };
-
-    // Determine accepted formats and preferred format
-    let (accepted_formats, preferred_format) = match &machine {
-        Some(name) => match machines::get_machine_info(name) {
-            Some(info) => {
-                let formats: Vec<String> = info
-                    .formats
-                    .iter()
-                    .map(|f| f.extension.to_string())
-                    .collect();
-                let preferred = output_format
-                    .or_else(|| formats.first().map(|s| s.to_string()))
-                    .unwrap_or_else(|| "dst".to_string());
-                (formats, preferred)
-            }
-            None => {
-                println!("Machine '{}' not found", name);
-                return;
-            }
-        },
-        None => {
-            let preferred = output_format.unwrap_or_else(|| "dst".to_string());
-            (vec![preferred.clone()], preferred)
-        }
-    };
-
-    let watch_dir = dir.unwrap_or_else(|| {
-        dirs::home_dir()
-            .expect("Could not find home directory")
-            .join("Downloads")
-    });
-
-    if !watch_dir.exists() {
-        println!("Directory does not exist: {}", watch_dir.display());
-        return;
-    }
-
-    println!(
-        "Setting up file watcher for directory: {}",
-        watch_dir.display()
-    );
-
-    let (fs_tx, rx) = channel();
-
-    // Create watcher with simplified event sending
-    let mut watcher = match RecommendedWatcher::new(
-        move |res| {
-            if let Err(e) = fs_tx.send(WatcherEvent::File(res)) {
-                eprintln!("Error sending event through channel: {:?}", e);
-            }
-        },
-        Config::default(),
-    ) {
-        Ok(w) => w,
-        Err(e) => {
-            eprintln!("Failed to create watcher: {:?}", e);
-            return;
-        }
-    };
-
-    // Set up watching with error handling
-    match watcher.watch(&watch_dir, RecursiveMode::NonRecursive) {
-        Ok(_) => (),
-        Err(e) => {
-            eprintln!("Failed to watch directory: {:?}", e);
-            return;
-        }
-    };
-
-    let embf_dir = find_embf_directory();
-
-    watch_directory(
-        watch_dir,
-        rx,
-        inkscape_info,
-        embf_dir,
-        accepted_formats,
-        preferred_format,
-    );
-    println!("File watcher stopped.");
 }

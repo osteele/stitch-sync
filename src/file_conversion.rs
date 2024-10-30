@@ -128,10 +128,13 @@ pub fn handle_file_creation(
     // If the file is in an accepted format, just copy it
     if accepted_formats.iter().any(|fmt| fmt == &extension) {
         if let Some(ref embf_dir) = embf_dir {
-            println!("Copying {} to EMB directory...", path.display());
+            println!("  Copying {} to target directory...", path.display());
             let dest = embf_dir.join(path.file_name().unwrap());
             std::fs::copy(path, &dest)?;
-            println!("Copied to: {}", dest.display());
+            println!("  Copied to: {}", dest.display());
+        } else {
+            // println!("  Already in the correct format, skipping conversion");
+            // println!("  No copy target directory specified, skipping copy");
         }
         return Ok(());
     }
@@ -146,7 +149,9 @@ pub fn handle_file_creation(
         if let Some(ref embf_dir) = embf_dir {
             let dest = embf_dir.join(output_path.file_name().unwrap());
             std::fs::copy(&output_path, &dest)?;
-            println!("Copied to EMB directory: {}", dest.display());
+            println!("  Copied to target directory: {}", dest.display());
+        } else {
+            // println!("  No copy target directory specified, skipping copy");
         }
     }
 
