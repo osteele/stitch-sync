@@ -35,9 +35,10 @@ cargo install --path .
 
 ## Usage
 
-Basic usage (watches Downloads directory):
+Basic usage (watches Downloads directory) -- either of:
 
 ```bash
+dst2jef
 dst2jef watch
 ```
 
@@ -45,6 +46,12 @@ Watch a specific directory:
 
 ```bash
 dst2jef watch --dir /path/to/directory
+```
+
+Select a different output format:
+
+```bash
+dst2jef watch --output-format jef+
 ```
 
 List all supported machines:

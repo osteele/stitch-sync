@@ -19,7 +19,6 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 
 use std::error::Error;
-use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -45,6 +44,9 @@ enum Commands {
         /// Directory to watch for new DST files
         #[arg(short, long)]
         dir: Option<PathBuf>,
+        /// Output format (e.g., 'jef', 'pes')
+        #[arg(short, long)]
+        output_format: String,
     },
     /// Machine-related commands
     Machine {
@@ -100,16 +102,58 @@ fn handle_file_creation(
     path: &Path,
     inkscape_info: &InkscapeInfo,
     embf_dir: &Option<PathBuf>,
+    output_format: &str,
 ) -> Result<(), Box<dyn Error>> {
     let mut stdout = io::stdout();
-    if path.extension() != Some(OsStr::new("dst")) {
+    let extension = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+
+    // If the file is already in the target format, just copy it
+    if extension == output_format {
+        if let Some(ref embf_dir) = embf_dir {
+            println!("Copying {} to EMB directory...", path.display());
+            let dest = embf_dir.join(path.file_name().unwrap());
+            std::fs::copy(path, &dest)?;
+            println!("Copied to: {}", dest.display());
+        }
+        return Ok(());
+    }
+
+    // Check if input format is supported
+    if !inkscape_info
+        .supported_read_formats
+        .contains(&extension.as_str())
+    {
+        return Ok(());
+    }
+
+    // Check if output format is supported
+    let image_formats = ["png", "jpg", "jpeg", "tiff", "bmp", "gif", "webp"];
+    if !inkscape_info
+        .supported_write_formats
+        .contains(&output_format)
+        && !image_formats.contains(&output_format)
+    {
+        println!(
+            "Warning: Output format '{}' is not supported by Inkscape",
+            output_format
+        );
         return Ok(());
     }
 
     println!("New file detected: {}", path.display());
-    print!("Converting {} to JEF using Inkscape...", path.display());
+    print!(
+        "Converting {} to {} using Inkscape...",
+        path.display(),
+        output_format
+    );
     stdout.flush()?;
-    let output_path = sanitize_filename(path);
+
+    let mut output_path = sanitize_filename(path);
+    output_path.set_extension(output_format);
     let start = Instant::now();
 
     // Start the command
@@ -142,7 +186,8 @@ fn handle_file_creation(
 
     let elapsed = start.elapsed();
     println!(
-        "Converted to JEF: {} ({:.2}s)",
+        "Converted to {}: {} ({:.2}s)",
+        output_format,
         output_path.display(),
         elapsed.as_secs_f32()
     );
@@ -157,16 +202,9 @@ fn handle_file_creation(
 }
 
 // Returns true if the program should exit
-fn handle_key_event(key: KeyEvent, embf_dir: &mut Option<PathBuf>) -> Result<bool, io::Error> {
+fn handle_key_event(key: KeyEvent) -> Result<bool, io::Error> {
     match (key.code, key.modifiers.contains(KeyModifiers::CONTROL)) {
         (KeyCode::Char('q'), _) | (KeyCode::Char('c'), true) => Ok(true),
-        (KeyCode::Char('t'), _) => {
-            if let Some(new_dir) = select_copy_target_directory() {
-                *embf_dir = Some(new_dir);
-                println!("New target directory set.");
-            }
-            Ok(false)
-        }
         (KeyCode::Char('u'), _) => {
             unmount_usb_volume();
             Ok(false)
@@ -185,7 +223,8 @@ fn watch_directory(
     path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
     inkscape_info: InkscapeInfo,
-    mut embf_dir: Option<PathBuf>,
+    embf_dir: Option<PathBuf>,
+    output_format: String,
 ) {
     let warn_inkstitch = false;
 
@@ -199,7 +238,7 @@ fn watch_directory(
     }
 
     println!("Watching directory: {}", path.as_ref().display());
-    println!("Press 'q' to quit, 't' to select target directory, 'u' to unmount USB volume");
+    println!("Press 'q' to quit, 'u' to unmount USB volume");
 
     enable_raw_mode().unwrap();
     defer! {
@@ -216,7 +255,12 @@ fn watch_directory(
                 WatcherEvent::File(Ok(event)) => {
                     if let notify::EventKind::Create(_) = event.kind {
                         for path in event.paths {
-                            if let Err(e) = handle_file_creation(&path, &inkscape_info, &embf_dir) {
+                            if let Err(e) = handle_file_creation(
+                                &path,
+                                &inkscape_info,
+                                &embf_dir,
+                                &output_format,
+                            ) {
                                 eprintln!("Error handling file creation: {}", e);
                             }
                         }
@@ -231,7 +275,7 @@ fn watch_directory(
         if event::poll(POLL_DURATION).unwrap() {
             if let Event::Key(key) = event::read().unwrap() {
                 disable_raw_mode().unwrap();
-                match handle_key_event(key, &mut embf_dir) {
+                match handle_key_event(key) {
                     Ok(true) => break 'main, // Exit requested
                     Ok(false) => (),         // Continue watching
                     Err(e) => {
@@ -248,8 +292,11 @@ fn watch_directory(
 fn main() {
     let cli = Cli::parse();
 
-    match cli.command.unwrap_or(Commands::Watch { dir: None }) {
-        Commands::Watch { dir } => watch_command(dir),
+    match cli.command.unwrap_or(Commands::Watch {
+        dir: None,
+        output_format: "jef".to_string(),
+    }) {
+        Commands::Watch { dir, output_format } => watch_command(dir, output_format),
         Commands::Machine { command } => match command {
             MachineCommand::List { format } => {
                 let machines = machines::MACHINES.iter().filter(|machine| {
@@ -334,7 +381,7 @@ fn main() {
 }
 
 // Move the existing main functionality into this function
-fn watch_command(dir: Option<PathBuf>) {
+fn watch_command(dir: Option<PathBuf>, output_format: String) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
@@ -396,6 +443,6 @@ fn watch_command(dir: Option<PathBuf>) {
 
     let embf_dir = find_embf_directory();
 
-    watch_directory(watch_dir, rx, inkscape_info, embf_dir);
+    watch_directory(watch_dir, rx, inkscape_info, embf_dir, output_format);
     println!("File watcher stopped.");
 }

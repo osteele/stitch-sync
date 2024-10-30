@@ -34,14 +34,6 @@ lazy_static! {
     pub static ref MACHINES: Vec<MachineInfo> = vec![
         // Brother Machines
         MachineInfo::new(
-            "Janome MB-4".into(),
-            vec!["jef", "jef+", "dst"],
-            Some("EMB".into()),
-            Some(
-                "4-needle machine with RCS unit; built-in memory capacity of 3MB.".into(),
-            ),
-        ),
-        MachineInfo::new(
             "Brother PE800".into(),
             vec!["pes"],
             Some("EMB/Embf".into()),
@@ -96,9 +88,11 @@ lazy_static! {
         ),
         MachineInfo::new(
             "Janome MB4".into(),
-            vec!["jef"],
-            Some("EMB/Embf".into()),
-            None,
+            vec!["jef", "jef+", "dst"],
+            Some("EMB".into()),
+            Some(
+                "4-needle machine with RCS unit; built-in memory capacity of 3MB.".into(),
+            ),
         ),
         MachineInfo::new(
             "Janome MC400E".into(),
@@ -283,20 +277,30 @@ mod tests {
 
     #[test]
     fn test_unique_machine_names() {
-        let mut name_counts: HashMap<&String, usize> = HashMap::new();
+        let mut name_groups: HashMap<String, Vec<String>> = HashMap::new();
+
         MACHINES.iter().for_each(|m| {
-            *name_counts.entry(&m.name).or_insert(0) += 1;
+            let normalized_name: String = m
+                .name
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect::<String>()
+                .to_lowercase();
+
+            name_groups
+                .entry(normalized_name)
+                .or_default()
+                .push(m.name.clone());
         });
 
-        let duplicates: Vec<_> = name_counts
-            .iter()
-            .filter(|(_, &count)| count > 1)
-            .map(|(name, _)| name)
+        let duplicates: Vec<_> = name_groups
+            .into_values()
+            .filter(|names| names.len() > 1)
             .collect();
 
         assert!(
             duplicates.is_empty(),
-            "Found duplicate machine names: {:?}",
+            "Found equivalent machine names: {:?}",
             duplicates
         );
     }
