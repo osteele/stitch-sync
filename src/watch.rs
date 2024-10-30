@@ -24,7 +24,8 @@ pub fn watch_directory(
     event_rx: Receiver<WatcherEvent>,
     inkscape_info: InkscapeInfo,
     embf_dir: Option<PathBuf>,
-    output_format: String,
+    accepted_formats: Vec<String>,
+    preferred_format: String,
 ) {
     let warn_inkstitch = false;
 
@@ -59,7 +60,8 @@ pub fn watch_directory(
                                 &path,
                                 &inkscape_info,
                                 &embf_dir,
-                                &output_format,
+                                &accepted_formats,
+                                &preferred_format,
                             ) {
                                 eprintln!("Error handling file creation: {}", e);
                             }

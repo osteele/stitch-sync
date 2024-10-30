@@ -63,6 +63,12 @@ lazy_static! {
         ),
         // Janome Machines
         MachineInfo::new(
+            "Hypercraft 930".into(),
+            vec!["jef", "jef+", "jpx"],
+            Some("EMB/Embf".into()),
+            Some("Equivalent to the Elna eXpressive 850".into()),
+        ),
+        MachineInfo::new(
             "Janome 200E".into(),
             vec!["jef"],
             Some("EMB/Embf".into()),

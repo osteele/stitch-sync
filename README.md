@@ -48,6 +48,15 @@ Watch a specific directory:
 dst2jef watch --dir /path/to/directory
 ```
 
+Specify a target machine:
+
+```bash
+dst2jef watch --machine "Brother PE800"
+```
+
+(This automatically handles format compatibility; see ./docs/format-selection.md
+for details.):
+
 Select a different output format:
 
 ```bash
@@ -89,24 +98,22 @@ Example output:
 ```bash
 # List file formats
 $ dst2jef formats
-dst: Tajima
-  Industry standard format, widely supported
+dst: Tajima -- Industry standard format, widely supported
 exp: Melco Expanded
 jef: Janome Embroidery Format
-jef+: Janome Embroidery Format Plus
-  Enhanced version of JEF with additional features
+jef+: Janome Embroidery Format Plus -- Enhanced version of JEF with additional features
 pes: Brother Embroidery Format
-vip: Viking/Pfaff
-  Legacy format
-vp3: Viking/Pfaff Phase 3
-  Current format for Viking and Pfaff machines
+vip: Viking/Pfaff -- Legacy format
+vp3: Viking/Pfaff Phase 3 -- Current format for Viking and Pfaff machines
 xxx: Singer
+...
 
 # List all machines
 $ dst2jef machines
-Brother PE800 (pes)
-Janome MC9900 (jef, dst)
-Pfaff Creative 4 (vp3)
+Brother PE800 (formats: pes)
+Janome MC9900 (formats: jef, dst)
+Pfaff Creative 4 (formats: vp3)
+...
 ```
 
 ## How It Works

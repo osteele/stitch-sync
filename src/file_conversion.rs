@@ -89,7 +89,7 @@ fn convert_file(
 
     let elapsed = start.elapsed();
     println!(
-        "Converted to {}: {} ({:.2}s)",
+        "Converted to {} format: {} ({:.2}s elapsed time)",
         output_format,
         output_path.display(),
         elapsed.as_secs_f32()
@@ -102,7 +102,8 @@ pub fn handle_file_creation(
     path: &Path,
     inkscape_info: &InkscapeInfo,
     embf_dir: &Option<PathBuf>,
-    output_format: &str,
+    accepted_formats: &[String],
+    preferred_format: &str,
 ) -> Result<(), Box<dyn Error>> {
     let extension = path
         .extension()
@@ -110,8 +111,22 @@ pub fn handle_file_creation(
         .map(|s| s.to_lowercase())
         .unwrap_or_default();
 
-    // If the file is already in the target format, just copy it
-    if extension == output_format {
+    if crate::file_formats::find_by_extension(&extension).is_some()
+        || accepted_formats.iter().any(|fmt| fmt == &extension)
+        || inkscape_info
+            .supported_read_formats
+            .contains(&extension.as_str())
+        || inkscape_info
+            .supported_write_formats
+            .contains(&extension.as_str())
+    {
+        println!("New file detected: {}", path.display());
+    }
+    // Go ahead and proceed with the rest of the logic even if it's not a file
+    // we recognize, since our list of extensions is not exhaustive
+
+    // If the file is in an accepted format, just copy it
+    if accepted_formats.iter().any(|fmt| fmt == &extension) {
         if let Some(ref embf_dir) = embf_dir {
             println!("Copying {} to EMB directory...", path.display());
             let dest = embf_dir.join(path.file_name().unwrap());
@@ -121,13 +136,13 @@ pub fn handle_file_creation(
         return Ok(());
     }
 
-    if !should_convert_file(path, inkscape_info, output_format) {
+    // Check if we can convert the file
+    if !should_convert_file(path, inkscape_info, preferred_format) {
         return Ok(());
     }
 
-    println!("New file detected: {}", path.display());
-
-    if let Ok(output_path) = convert_file(path, inkscape_info, output_format) {
+    // Convert the file to preferred format
+    if let Ok(output_path) = convert_file(path, inkscape_info, preferred_format) {
         if let Some(ref embf_dir) = embf_dir {
             let dest = embf_dir.join(output_path.file_name().unwrap());
             std::fs::copy(&output_path, &dest)?;

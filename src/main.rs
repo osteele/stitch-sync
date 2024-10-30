@@ -38,8 +38,11 @@ enum Commands {
         #[arg(short, long)]
         dir: Option<PathBuf>,
         /// Output format (e.g., 'jef', 'pes')
-        #[arg(short, long, default_value = "jef")]
-        output_format: String,
+        #[arg(short, long)]
+        output_format: Option<String>,
+        /// Target machine (determines accepted formats)
+        #[arg(short, long)]
+        machine: Option<String>,
     },
     /// Machine-related commands
     Machine {
@@ -95,9 +98,14 @@ fn main() {
 
     match cli.command.unwrap_or(Commands::Watch {
         dir: None,
-        output_format: "jef".to_string(),
+        output_format: None,
+        machine: None,
     }) {
-        Commands::Watch { dir, output_format } => watch_command(dir, output_format),
+        Commands::Watch {
+            dir,
+            output_format,
+            machine,
+        } => watch_command(dir, output_format, machine),
         Commands::Machine { command } => match command {
             MachineCommand::List { format } => {
                 let machines = machines::MACHINES.iter().filter(|machine| {
@@ -181,8 +189,7 @@ fn main() {
     }
 }
 
-// Move the existing main functionality into this function
-fn watch_command(dir: Option<PathBuf>, output_format: String) {
+fn watch_command(dir: Option<PathBuf>, output_format: Option<String>, machine: Option<String>) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
@@ -196,6 +203,31 @@ fn watch_command(dir: Option<PathBuf>, output_format: String) {
         None => {
             println!("Inkscape not found. Please download and install from https://inkscape.org/release/1.4/mac-os-x/");
             return;
+        }
+    };
+
+    // Determine accepted formats and preferred format
+    let (accepted_formats, preferred_format) = match &machine {
+        Some(name) => match machines::get_machine_info(name) {
+            Some(info) => {
+                let formats: Vec<String> = info
+                    .formats
+                    .iter()
+                    .map(|f| f.extension.to_string())
+                    .collect();
+                let preferred = output_format
+                    .or_else(|| formats.first().map(|s| s.to_string()))
+                    .unwrap_or_else(|| "dst".to_string());
+                (formats, preferred)
+            }
+            None => {
+                println!("Machine '{}' not found", name);
+                return;
+            }
+        },
+        None => {
+            let preferred = output_format.unwrap_or_else(|| "dst".to_string());
+            (vec![preferred.clone()], preferred)
         }
     };
 
@@ -244,6 +276,13 @@ fn watch_command(dir: Option<PathBuf>, output_format: String) {
 
     let embf_dir = find_embf_directory();
 
-    watch_directory(watch_dir, rx, inkscape_info, embf_dir, output_format);
+    watch_directory(
+        watch_dir,
+        rx,
+        inkscape_info,
+        embf_dir,
+        accepted_formats,
+        preferred_format,
+    );
     println!("File watcher stopped.");
 }
