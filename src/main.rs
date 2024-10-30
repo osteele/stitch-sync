@@ -1,3 +1,4 @@
+mod file_conversion;
 mod file_formats;
 mod inkscape;
 mod machines;
