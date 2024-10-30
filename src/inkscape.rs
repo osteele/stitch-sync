@@ -1,10 +1,29 @@
+use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};
 use which::which;
 
+lazy_static! {
+    /// File formats that Ink/Stitch can write/export
+    pub static ref SUPPORTED_WRITE_FORMATS: Vec<&'static str> = vec![
+        "csv", "dst", "exp", "jef", "pec", "pes", "svg", "txt", "u01", "vp3"
+    ];
+
+    /// File formats that Ink/Stitch can read/import
+    pub static ref SUPPORTED_READ_FORMATS: Vec<&'static str> = vec![
+        "100", "10o", "bro", "dat", "dsb", "dst", "dsz", "emd", "exp", "exy",
+        "fxy", "gt", "inb", "jef", "jpx", "ksm", "max", "mit", "new", "pcd",
+        "pcm", "pcq", "pcs", "pec", "pes", "phb", "phc", "sew", "shv", "stc",
+        "stx", "tap", "tbf", "txt", "u01", "vp3", "xxx", "zxy"
+    ];
+}
+
 pub struct InkscapeInfo {
     pub path: PathBuf,
-    #[allow(dead_code)]
     pub has_inkstitch: bool,
+    #[allow(dead_code)]
+    pub supported_read_formats: &'static [&'static str],
+    #[allow(dead_code)]
+    pub supported_write_formats: &'static [&'static str],
 }
 
 pub fn find_inkscape() -> Option<InkscapeInfo> {
@@ -14,6 +33,8 @@ pub fn find_inkscape() -> Option<InkscapeInfo> {
         return Some(InkscapeInfo {
             path,
             has_inkstitch,
+            supported_read_formats: &SUPPORTED_READ_FORMATS,
+            supported_write_formats: &SUPPORTED_WRITE_FORMATS,
         });
     }
 
@@ -26,6 +47,8 @@ pub fn find_inkscape() -> Option<InkscapeInfo> {
             return Some(InkscapeInfo {
                 path: app_path,
                 has_inkstitch,
+                supported_read_formats: &SUPPORTED_READ_FORMATS,
+                supported_write_formats: &SUPPORTED_WRITE_FORMATS,
             });
         }
     }
@@ -56,6 +79,8 @@ pub fn find_inkscape() -> Option<InkscapeInfo> {
                 return Some(InkscapeInfo {
                     path,
                     has_inkstitch,
+                    supported_read_formats: &SUPPORTED_READ_FORMATS,
+                    supported_write_formats: &SUPPORTED_WRITE_FORMATS,
                 });
             }
         }
@@ -76,6 +101,8 @@ pub fn find_inkscape() -> Option<InkscapeInfo> {
                 return Some(InkscapeInfo {
                     path,
                     has_inkstitch,
+                    supported_read_formats: &SUPPORTED_READ_FORMATS,
+                    supported_write_formats: &SUPPORTED_WRITE_FORMATS,
                 });
             }
         }
@@ -168,4 +195,31 @@ fn find_inkstitch_extension(inkscape_path: &Path) -> bool {
     }
 
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::file_formats::FILE_FORMATS;
+
+    #[test]
+    #[ignore]
+    fn test_formats_are_supported_by_inkstitch() {
+        let known_formats: Vec<_> = FILE_FORMATS
+            .iter()
+            .map(|f| f.extension.to_lowercase())
+            .collect();
+
+        let unknown = SUPPORTED_READ_FORMATS
+            .iter()
+            .map(|ext| ext.to_lowercase())
+            .filter(|ext| !known_formats.contains(ext))
+            .collect::<Vec<_>>();
+
+        assert!(
+            unknown.is_empty(),
+            "Found Ink/Stitch formats not defined in FILE_FORMATS: {:?}",
+            unknown
+        );
+    }
 }

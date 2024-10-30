@@ -26,7 +26,7 @@ use std::process::Command;
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::file_formats::ALL_FORMATS;
+use crate::file_formats::FILE_FORMATS;
 use crate::inkscape::InkscapeInfo;
 use crate::usb_drive::{find_embf_directory, unmount_usb_volume};
 use crate::utils::sanitize_filename;
@@ -257,7 +257,7 @@ fn main() {
                         machine
                             .formats
                             .iter()
-                            .any(|fmt| fmt.to_string().eq_ignore_ascii_case(f))
+                            .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
                     })
                 });
 
@@ -268,7 +268,7 @@ fn main() {
                         machine
                             .formats
                             .iter()
-                            .map(|f| f.to_string())
+                            .map(|f| f.extension)
                             .collect::<Vec<_>>()
                             .join(", ")
                     );
@@ -281,7 +281,7 @@ fn main() {
                         "  Formats: {}",
                         info.formats
                             .iter()
-                            .map(|f| f.to_string())
+                            .map(|f| f.extension)
                             .collect::<Vec<_>>()
                             .join(", ")
                     );
@@ -296,13 +296,12 @@ fn main() {
             },
         },
         Commands::Machines { format } => {
-            // Reuse the machine list logic
             let machines = machines::MACHINES.iter().filter(|machine| {
                 format.as_ref().map_or(true, |f| {
                     machine
                         .formats
                         .iter()
-                        .any(|fmt| fmt.to_string().eq_ignore_ascii_case(f))
+                        .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
                 })
             });
 
@@ -313,20 +312,19 @@ fn main() {
                     machine
                         .formats
                         .iter()
-                        .map(|f| f.to_string())
+                        .map(|f| f.extension)
                         .collect::<Vec<_>>()
                         .join(", ")
                 );
             }
         }
         Commands::Formats => {
-            let mut formats: Vec<_> = ALL_FORMATS.iter().collect();
-            formats.sort_by_key(|format| format.get_info().extension);
+            let mut formats = FILE_FORMATS.to_vec();
+            formats.sort_by_key(|format| format.extension);
 
             for format in formats {
-                let info = format.get_info();
-                print!("{}: {}", info.extension, info.manufacturer);
-                if let Some(notes) = info.notes {
+                print!("{}: {}", format.extension, format.manufacturer);
+                if let Some(notes) = format.notes {
                     print!(" -- {}", notes);
                 }
                 println!();
