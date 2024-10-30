@@ -91,10 +91,17 @@ fn list_machines_command(format: Option<String>) {
 fn watch_command(
     watch_dir: Option<PathBuf>,
     output_format: Option<String>,
-    machine: Option<String>,
+    machine_name: Option<String>,
 ) {
     let copy_target_dir = find_embf_directory();
-    watch::watch(watch_dir, copy_target_dir, output_format, machine);
+    let machine = machine_name
+        .clone()
+        .and_then(|m| machines::get_machine_info(&m));
+    if machine_name.is_some() && machine.is_none() {
+        println!("Machine '{}' not found", machine_name.unwrap());
+        return;
+    }
+    watch::watch(watch_dir, copy_target_dir, output_format, &machine);
 }
 
 fn main() {

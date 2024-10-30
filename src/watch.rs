@@ -16,10 +16,9 @@ use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
-use crate::inkscape;
-use crate::machines;
 use crate::usb_drive::unmount_usb_volume;
 use crate::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
+use crate::{inkscape, machines::MachineInfo};
 
 #[derive(Debug)]
 pub enum WatcherEvent {
@@ -30,7 +29,7 @@ pub fn watch(
     watch_dir: Option<PathBuf>,
     copy_target_dir: Option<PathBuf>,
     output_format: Option<String>,
-    machine: Option<String>,
+    machine: &Option<MachineInfo>,
 ) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
@@ -50,23 +49,17 @@ pub fn watch(
 
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
-        Some(name) => match machines::get_machine_info(name) {
-            Some(info) => {
-                let formats: Vec<String> = info
-                    .formats
-                    .iter()
-                    .map(|f| f.extension.to_string())
-                    .collect();
-                let preferred = output_format
-                    .or_else(|| formats.first().map(|s| s.to_string()))
-                    .unwrap_or_else(|| "dst".to_string());
-                (formats, preferred)
-            }
-            None => {
-                println!("Machine '{}' not found", name);
-                return;
-            }
-        },
+        Some(machine) => {
+            let formats: Vec<String> = machine
+                .formats
+                .iter()
+                .map(|f| f.extension.to_string())
+                .collect();
+            let preferred = output_format
+                .or_else(|| formats.first().map(|s| s.to_string()))
+                .unwrap_or_else(|| "dst".to_string());
+            (formats, preferred)
+        }
         None => {
             let preferred = output_format.unwrap_or_else(|| "dst".to_string());
             (vec![preferred.clone()], preferred)
