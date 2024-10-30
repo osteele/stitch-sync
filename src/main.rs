@@ -1,4 +1,6 @@
+mod file_formats;
 mod inkscape;
+mod machines;
 mod usb_drive;
 mod utils;
 
@@ -11,6 +13,7 @@ use crossterm::{
 };
 use ctrlc;
 use notify::{Config, Event as NotifyEvent, RecommendedWatcher, RecursiveMode, Watcher};
+use scopeguard::defer;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
@@ -23,19 +26,54 @@ use std::process::Command;
 use std::time::Duration;
 use std::time::Instant;
 
+use crate::file_formats::ALL_FORMATS;
 use crate::inkscape::InkscapeInfo;
 use crate::usb_drive::{find_embf_directory, unmount_usb_volume};
 use crate::utils::sanitize_filename;
 
-use scopeguard::defer;
-
-/// Convert DST embroidery files to JEF format using Inkscape with ink/stitch
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct Args {
-    /// Directory to watch for new DST files
-    #[arg(short, long)]
-    dir: Option<PathBuf>,
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Parser)]
+enum Commands {
+    /// Watch directory and convert files
+    Watch {
+        /// Directory to watch for new DST files
+        #[arg(short, long)]
+        dir: Option<PathBuf>,
+    },
+    /// Machine-related commands
+    Machine {
+        #[command(subcommand)]
+        command: MachineCommand,
+    },
+    /// List all supported machines (alias for 'machine list')
+    Machines {
+        /// Filter by file format
+        #[arg(short, long)]
+        format: Option<String>,
+    },
+    /// List supported file formats
+    Formats,
+}
+
+#[derive(Parser)]
+enum MachineCommand {
+    /// List all supported machines
+    List {
+        /// Filter by file format
+        #[arg(short, long)]
+        format: Option<String>,
+    },
+    /// Show detailed information for a specific machine
+    Info {
+        /// Name of the machine
+        name: String,
+    },
 }
 
 #[allow(dead_code)]
@@ -208,8 +246,97 @@ fn watch_directory(
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
+    match cli.command.unwrap_or(Commands::Watch { dir: None }) {
+        Commands::Watch { dir } => watch_command(dir),
+        Commands::Machine { command } => match command {
+            MachineCommand::List { format } => {
+                let machines = machines::MACHINES.iter().filter(|machine| {
+                    format.as_ref().map_or(true, |f| {
+                        machine
+                            .formats
+                            .iter()
+                            .any(|fmt| fmt.to_string().eq_ignore_ascii_case(f))
+                    })
+                });
+
+                for machine in machines {
+                    println!(
+                        "{} ({})",
+                        machine.name,
+                        machine
+                            .formats
+                            .iter()
+                            .map(|f| f.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                }
+            }
+            MachineCommand::Info { name } => match machines::get_machine_info(&name) {
+                Some(info) => {
+                    println!("{}", info.name);
+                    println!(
+                        "  Formats: {}",
+                        info.formats
+                            .iter()
+                            .map(|f| f.to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    if let Some(path) = &info.usb_path {
+                        println!("  USB path: {}", path);
+                    }
+                    if let Some(notes) = &info.notes {
+                        println!("  Notes: {}", notes);
+                    }
+                }
+                None => println!("Machine '{}' not found", name),
+            },
+        },
+        Commands::Machines { format } => {
+            // Reuse the machine list logic
+            let machines = machines::MACHINES.iter().filter(|machine| {
+                format.as_ref().map_or(true, |f| {
+                    machine
+                        .formats
+                        .iter()
+                        .any(|fmt| fmt.to_string().eq_ignore_ascii_case(f))
+                })
+            });
+
+            for machine in machines {
+                println!(
+                    "{} ({})",
+                    machine.name,
+                    machine
+                        .formats
+                        .iter()
+                        .map(|f| f.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+            }
+        }
+        Commands::Formats => {
+            let mut formats: Vec<_> = ALL_FORMATS.iter().collect();
+            formats.sort_by_key(|format| format.get_info().extension);
+
+            for format in formats {
+                let info = format.get_info();
+                print!("{}: {}", info.extension, info.manufacturer);
+                if let Some(notes) = info.notes {
+                    print!(" -- {}", notes);
+                }
+                println!();
+            }
+        }
+    }
+}
+
+// Move the existing main functionality into this function
+fn watch_command(dir: Option<PathBuf>) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
@@ -226,7 +353,7 @@ fn main() {
         }
     };
 
-    let watch_dir = args.dir.unwrap_or_else(|| {
+    let watch_dir = dir.unwrap_or_else(|| {
         dirs::home_dir()
             .expect("Could not find home directory")
             .join("Downloads")

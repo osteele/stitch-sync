@@ -10,6 +10,7 @@ new DST files and automatically converts them when they appear.
 - Automatically converts DST files to JEF format using Inkscape
 - Optionally copies converted files to an EMB/Embf directory (e.g., on a USB
   drive)
+- Database of embroidery machines and their supported formats
 - Cross-platform support (macOS, Windows, Linux)
 - Sanitizes output filenames for better compatibility
 - Real-time conversion status updates
@@ -37,19 +38,68 @@ cargo install --path .
 Basic usage (watches Downloads directory):
 
 ```bash
-dst2jef
+dst2jef watch
 ```
 
 Watch a specific directory:
 
 ```bash
-dst2jef --dir /path/to/directory
+dst2jef watch --dir /path/to/directory
+```
+
+List all supported machines:
+
+```bash
+dst2jef machines
+```
+
+List machines that support a specific format:
+
+```bash
+dst2jef machines --format dst
+```
+
+List all supported file formats:
+
+```bash
+dst2jef formats
+```
+
+Show detailed information for a specific machine:
+
+```bash
+dst2jef machine info "Brother PE800"
 ```
 
 View help:
 
 ```bash
 dst2jef --help
+```
+
+Example output:
+
+```bash
+# List file formats
+$ dst2jef formats
+dst: Tajima
+  Industry standard format, widely supported
+exp: Melco Expanded
+jef: Janome Embroidery Format
+jef+: Janome Embroidery Format Plus
+  Enhanced version of JEF with additional features
+pes: Brother Embroidery Format
+vip: Viking/Pfaff
+  Legacy format
+vp3: Viking/Pfaff Phase 3
+  Current format for Viking and Pfaff machines
+xxx: Singer
+
+# List all machines
+$ dst2jef machines
+Brother PE800 (pes)
+Janome MC9900 (jef, dst)
+Pfaff Creative 4 (vp3)
 ```
 
 ## How It Works
