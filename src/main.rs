@@ -74,22 +74,27 @@ enum MachineCommand {
     },
 }
 
-#[allow(dead_code)]
-fn select_copy_target_directory() -> Option<PathBuf> {
-    // Switch to normal mode
-    let mut stdout = io::stdout();
-    execute!(stdout, cursor::Show).unwrap();
+fn list_machines_command(format: Option<String>) {
+    let machines = machines::MACHINES.iter().filter(|machine| {
+        format.as_ref().map_or(true, |f| {
+            machine
+                .formats
+                .iter()
+                .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
+        })
+    });
 
-    println!("Please enter the path to the target directory:");
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).ok()?;
-    let path = PathBuf::from(input.trim());
-
-    if path.exists() && path.is_dir() {
-        Some(path)
-    } else {
-        println!("Invalid directory. Please try again.");
-        None
+    for machine in machines {
+        println!(
+            "{} ({})",
+            machine.name,
+            machine
+                .formats
+                .iter()
+                .map(|f| f.extension)
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
     }
 }
 
@@ -107,29 +112,7 @@ fn main() {
             machine,
         } => watch_command(dir, output_format, machine),
         Commands::Machine { command } => match command {
-            MachineCommand::List { format } => {
-                let machines = machines::MACHINES.iter().filter(|machine| {
-                    format.as_ref().map_or(true, |f| {
-                        machine
-                            .formats
-                            .iter()
-                            .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
-                    })
-                });
-
-                for machine in machines {
-                    println!(
-                        "{} ({})",
-                        machine.name,
-                        machine
-                            .formats
-                            .iter()
-                            .map(|f| f.extension)
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
-                }
-            }
+            MachineCommand::List { format } => list_machines_command(format),
             MachineCommand::Info { name } => match machines::get_machine_info(&name) {
                 Some(info) => {
                     println!("{}", info.name);
@@ -151,29 +134,7 @@ fn main() {
                 None => println!("Machine '{}' not found", name),
             },
         },
-        Commands::Machines { format } => {
-            let machines = machines::MACHINES.iter().filter(|machine| {
-                format.as_ref().map_or(true, |f| {
-                    machine
-                        .formats
-                        .iter()
-                        .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
-                })
-            });
-
-            for machine in machines {
-                println!(
-                    "{} ({})",
-                    machine.name,
-                    machine
-                        .formats
-                        .iter()
-                        .map(|f| f.extension)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
-            }
-        }
+        Commands::Machines { format } => list_machines_command(format),
         Commands::Formats => {
             let mut formats = FILE_FORMATS.to_vec();
             formats.sort_by_key(|format| format.extension);
