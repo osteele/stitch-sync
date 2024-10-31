@@ -1,8 +1,6 @@
-use csv::ReaderBuilder;
 use lazy_static::lazy_static;
-use std::io::Cursor;
 
-use crate::utils::get_column_index;
+use crate::utils::CsvReader;
 
 #[derive(Debug, Clone)]
 pub struct Machine {
@@ -16,12 +14,11 @@ pub struct Machine {
 impl Machine {
     pub fn new(
         name: String,
-        formats: Vec<&str>,
+        formats: Vec<String>,
         usb_path: Option<String>,
         notes: Option<String>,
         design_size: Option<String>,
     ) -> Self {
-        let formats = formats.iter().map(|f| f.to_string()).collect();
         Self {
             name,
             formats,
@@ -42,31 +39,21 @@ impl Machine {
 lazy_static! {
     pub static ref MACHINES: Vec<Machine> = {
         let csv_data = include_str!("./machines.csv");
-        let mut reader = ReaderBuilder::new()
-            .has_headers(true)
-            .from_reader(Cursor::new(csv_data));
+        let mut reader = CsvReader::from_str(csv_data).unwrap();
 
-        let headers = reader.headers().unwrap();
-        let name_idx = get_column_index(headers, "Machine Name").unwrap();
-        let formats_idx = get_column_index(headers, "File Formats").unwrap();
-        let usb_idx = get_column_index(headers, "USB Path").unwrap();
-        let notes_idx = get_column_index(headers, "Notes").unwrap();
-        let design_size_idx = get_column_index(headers, "Design Size").unwrap();
-
-        let mut machines = Vec::new();
-        for result in reader.records() {
-            let record = result.unwrap();
-            let formats: Vec<&str> = record[formats_idx].split(',').map(|s| s.trim()).collect();
-
-            machines.push(Machine::new(
-                record[name_idx].to_string(),
-                formats,
-                Some(record[usb_idx].to_string()).filter(|s| !s.is_empty()),
-                Some(record[notes_idx].to_string()).filter(|s| !s.is_empty()),
-                Some(record[design_size_idx].to_string()).filter(|s| !s.is_empty()),
-            ));
-        }
-        machines
+        reader
+            .iter_records()
+            .map(|result| {
+                let record = result.unwrap();
+                Machine::new(
+                    record.get("Machine Name").unwrap().to_string(),
+                    record.get_vec("File Formats", ',').unwrap(),
+                    record.get("USB Path").map(ToString::to_string),
+                    record.get("Notes").map(ToString::to_string),
+                    record.get("Design Size").map(ToString::to_string),
+                )
+            })
+            .collect()
     };
 }
 

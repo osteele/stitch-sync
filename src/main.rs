@@ -221,7 +221,7 @@ fn main() -> Result<()> {
         Commands::Machines { format, verbose } => list_machines_command(format, verbose)?,
         Commands::Formats => {
             let mut formats = FILE_FORMATS.to_vec();
-            formats.sort_by_key(|format| format.extension);
+            formats.sort_by_key(|format| format.extension.to_owned());
 
             for format in formats {
                 print!("{}: {}", format.extension, format.manufacturer);

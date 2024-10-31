@@ -1,0 +1,99 @@
+- name: "Bernina Embroidery Format"
+  extension: "art"
+  manufacturer: "Bernina"
+  notes: null
+
+- name: "Singer Compatible Design"
+  extension: "csd"
+  manufacturer: "Singer"
+  notes: "Used by older Singer EU/Poem/Huskygram machines"
+
+- name: "Tajima"
+  extension: "dst"
+  manufacturer: "Tajima"
+  notes: "Industry standard format, widely supported by home and commercial machines"
+
+- name: "Melco Expanded"
+  extension: "exp"
+  manufacturer: "Melco/Bravo"
+  notes: "Used by Bernina and Melco machines"
+
+- name: "Singer Futura"
+  extension: "fhe"
+  manufacturer: "Singer"
+  notes: "Native format for Singer Futura machines"
+
+- name: "Husqvarna Viking"
+  extension: "hus"
+  manufacturer: "Husqvarna/Viking"
+  notes: null
+
+- name: "Janome Embroidery Format"
+  extension: "jef"
+  manufacturer: "Janome"
+  notes: null
+
+- name: "Extended Janome Embroidery Format"
+  extension: "jef+"
+  manufacturer: "Janome"
+  notes: "Enhanced version of JEF for larger designs and more advanced edits"
+
+- name: "Janome Extended"
+  extension: "jpx"
+  manufacturer: "Janome"
+  notes: "Janome proprietary format that includes stitch data and background images"
+
+- name: "Pfaff PC-Designer"
+  extension: "pcd"
+  manufacturer: "Pfaff"
+  notes: null
+
+- name: "Pfaff Embroidery Design Files"
+  extension: "pcm"
+  manufacturer: "Pfaff"
+  notes: null
+
+- name: "Pfaff"
+  extension: "pcs"
+  manufacturer: "Pfaff"
+  notes: null
+
+- name: "Brother (subset of PES)"
+  extension: "pec"
+  manufacturer: "Brother"
+  notes: null
+
+- name: "Brother Embroidery Format"
+  extension: "pes"
+  manufacturer: "Brother"
+  notes: "Brother/Babylock format, popular for home machines"
+
+- name: "Viking/Pfaff"
+  extension: "vip"
+  manufacturer: "Viking/Pfaff"
+  notes: "Legacy format"
+
+- name: "Viking/Pfaff Phase 3"
+  extension: "vp3"
+  manufacturer: "Viking/Pfaff"
+  notes: "Current format for Viking and Pfaff machines"
+
+- name: "Singer"
+  extension: "xxx"
+  manufacturer: "Singer"
+  notes: null
+
+- name: "Singer Professional Sew Ware"
+  extension: "psw"
+  manufacturer: "Singer"
+  notes: null
+
+- name: "Janome/Elna"
+  extension: "sew"
+  manufacturer: "Janome/Elna"
+  notes: null
+
+- name: "ZSK Embroidery"
+  extension: "zsk"
+  manufacturer: "ZSK"
+  notes: null
