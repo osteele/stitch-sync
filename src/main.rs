@@ -76,21 +76,12 @@ fn list_machines_command(format: Option<String>, verbose: bool) {
             machine
                 .formats
                 .iter()
-                .any(|fmt| fmt.extension.eq_ignore_ascii_case(f))
+                .any(|fmt| fmt.eq_ignore_ascii_case(f))
         })
     });
 
     for machine in machines {
-        println!(
-            "{} ({})",
-            machine.name,
-            machine
-                .formats
-                .iter()
-                .map(|f| f.extension)
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+        println!("{} ({})", machine.name, machine.formats.join(", "));
         if verbose {
             if let Some(notes) = &machine.notes {
                 println!("  Note: {}", notes);
@@ -121,11 +112,7 @@ fn watch_command(
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
         Some(machine) => {
-            let formats: Vec<String> = machine
-                .formats
-                .iter()
-                .map(|f| f.extension.to_string())
-                .collect();
+            let formats = machine.formats.clone();
             let preferred = output_format
                 .or_else(|| formats.first().map(|s| s.to_string()))
                 .unwrap_or_else(|| "dst".to_string());
@@ -162,14 +149,7 @@ fn main() {
             MachineCommand::Info { name } => match machines::get_machine_info(&name) {
                 Some(info) => {
                     println!("{}", info.name);
-                    println!(
-                        "  Formats: {}",
-                        info.formats
-                            .iter()
-                            .map(|f| f.extension)
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
+                    println!("  Formats: {}", info.formats.join(", "));
                     if let Some(path) = &info.usb_path {
                         println!("  USB path: {}", path);
                     }

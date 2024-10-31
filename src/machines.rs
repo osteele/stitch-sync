@@ -2,15 +2,12 @@ use csv::ReaderBuilder;
 use lazy_static::lazy_static;
 use std::io::Cursor;
 
-use crate::{
-    file_formats::{self, FileFormat},
-    utils::get_column_index,
-};
+use crate::utils::get_column_index;
 
 #[derive(Debug, Clone)]
 pub struct MachineInfo {
     pub name: String,
-    pub formats: Vec<&'static FileFormat>,
+    pub formats: Vec<String>,
     pub usb_path: Option<String>,
     pub notes: Option<String>,
     pub design_size: Option<String>,
@@ -24,10 +21,7 @@ impl MachineInfo {
         notes: Option<String>,
         design_size: Option<String>,
     ) -> Self {
-        let formats = formats
-            .iter()
-            .map(|f| file_formats::find_by_extension(f).unwrap())
-            .collect();
+        let formats = formats.iter().map(|f| f.to_string()).collect();
         Self {
             name,
             formats,
