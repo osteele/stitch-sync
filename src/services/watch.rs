@@ -14,11 +14,10 @@ use std::io::{self};
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
-use std::time::Duration;
 
-use crate::inkscape;
 use crate::usb_drive::unmount_usb_volume;
-use crate::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
+use crate::{services::file_conversion::handle_file_creation, services::inkscape::InkscapeInfo};
+use crate::{services::inkscape, utils::WATCH_POLL_INTERVAL};
 
 #[derive(Debug)]
 pub enum WatcherEvent {
@@ -128,8 +127,6 @@ pub fn watch_directory(
         disable_raw_mode().unwrap();
     }
 
-    const POLL_DURATION: Duration = Duration::from_millis(100);
-
     'main: loop {
         // Check both keyboard and file events in each iteration
         while let Ok(event) = event_rx.try_recv() {
@@ -156,7 +153,7 @@ pub fn watch_directory(
         }
 
         // Check for keyboard input
-        if event::poll(POLL_DURATION).unwrap() {
+        if event::poll(WATCH_POLL_INTERVAL).unwrap() {
             if let Event::Key(key) = event::read().unwrap() {
                 disable_raw_mode().unwrap();
                 match handle_key_event(key) {

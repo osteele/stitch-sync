@@ -34,7 +34,7 @@ impl MachineInfo {
 
 lazy_static! {
     pub static ref MACHINES: Vec<MachineInfo> = {
-        let csv_data = include_str!("./assets/machines.csv");
+        let csv_data = include_str!("./machines.csv");
         let mut reader = ReaderBuilder::new()
             .has_headers(true)
             .from_reader(Cursor::new(csv_data));

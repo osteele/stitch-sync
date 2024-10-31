@@ -200,7 +200,7 @@ fn find_inkstitch_extension(inkscape_path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::file_formats::FILE_FORMATS;
+    use crate::types::FILE_FORMATS;
 
     #[test]
     #[ignore]
