@@ -1,5 +1,5 @@
 [package]
-name = "dst2jef"
+name = "stitch-sync"
 version = "0.1.0"
 edition = "2021"
 authors = ["Oliver Steele <steele@osteele.com>"]

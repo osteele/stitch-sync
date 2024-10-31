@@ -1,24 +1,22 @@
-# dst2jef
+# Stitch-sync
 
-A command-line utility that automatically converts DST embroidery files to JEF
-format using Inkscape with the ink/stitch extension. It watches a directory for
-new DST files and automatically converts them when they appear.
+An automated embroidery file converter that watches for design files and prepares them for your embroidery machine.
+
+It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to a format supported by the specified embroidery machine, and copies design files to a connected USB drive.
 
 ## Features
-
-- Watches a directory (default: Downloads) for new .dst files
-- Automatically converts DST files to JEF format using Inkscape
-- Optionally copies converted files to an EMB/Embf directory (e.g., on a USB
-  drive)
+- Automatically monitors directories for new embroidery design files
+- Converts designs to formats compatible with your embroidery machine
+- Supports any machine format that Ink/Stitch can export
+- Copies converted files to an EMB/Embf directory (e.g., on a USB drive)
 - Database of embroidery machines and their supported formats
 - Cross-platform support (macOS, Windows, Linux)
 - Sanitizes output filenames for better compatibility
-- Real-time conversion status updates
 
 ## Prerequisites
 
-1. [Inkscape](https://inkscape.org/) must be installed on your system
-2. The [ink/stitch extension](https://inkstitch.org/) must be installed in
+1. [Inkscape][Inkscape] must be installed on your system
+2. The [ink/stitch extension][inkstitch] must be installed in
    Inkscape
 3. Rust and Cargo must be installed on your system
 
@@ -26,8 +24,8 @@ new DST files and automatically converts them when they appear.
 
 ```bash
 # Clone the repository
-git clone https://github.com/osteele/dst2jef
-cd dst2jef
+git clone https://github.com/osteele/stitch-sync
+cd stitch-sync
 
 # Build and install
 cargo install --path .
@@ -35,23 +33,24 @@ cargo install --path .
 
 ## Usage
 
-Basic usage (watches Downloads directory) -- either of:
+Basic usage:
 
 ```bash
-dst2jef
-dst2jef watch
+stitch-sync
 ```
+
+(This watches the downloads directory.)
 
 Watch a specific directory:
 
 ```bash
-dst2jef watch --dir /path/to/directory
+stitch-sync watch --dir /path/to/directory
 ```
 
 Specify a target machine:
 
 ```bash
-dst2jef watch --machine "Brother PE800"
+stitch-sync watch --machine "Brother PE800"
 ```
 
 (This automatically handles format compatibility; see ./docs/format-selection.md
@@ -60,44 +59,44 @@ for details.):
 Select a different output format:
 
 ```bash
-dst2jef watch --output-format jef+
+stitch-sync watch --output-format jef+
 ```
 
 List all supported machines:
 
 ```bash
-dst2jef machines
+stitch-sync machines
 ```
 
 List machines that support a specific format:
 
 ```bash
-dst2jef machines --format dst
+stitch-sync machines --format dst
 ```
 
 List all supported file formats:
 
 ```bash
-dst2jef formats
+stitch-sync formats
 ```
 
 Show detailed information for a specific machine:
 
 ```bash
-dst2jef machine info "Brother PE800"
+stitch-sync machine info "Brother PE800"
 ```
 
 View help:
 
 ```bash
-dst2jef --help
+stitch-sync --help
 ```
 
 Example output:
 
 ```bash
 # List file formats
-$ dst2jef formats
+$ stitch-sync formats
 dst: Tajima -- Industry standard format, widely supported
 exp: Melco Expanded
 jef: Janome Embroidery Format
@@ -109,7 +108,7 @@ xxx: Singer
 ...
 
 # List all machines
-$ dst2jef machines
+$ stitch-sync machines
 Brother PE800 (formats: pes)
 Janome MC9900 (formats: jef, dst)
 Pfaff Creative 4 (formats: vp3)
@@ -118,12 +117,31 @@ Pfaff Creative 4 (formats: vp3)
 
 ## How It Works
 
-1. The program starts watching the specified directory for new .dst files
-2. When a new .dst file is detected:
-   - Converts it to .jef format using Inkscape with ink/stitch
+1. The program watches the specified directory for new embroidery files
+2. When a new file is detected:
+   - Checks if the file format is acceptable based on settings:
+     - With `--machine`: Accepts formats supported by the specified machine
+     - With `--output-format`: Accepts formats that can be converted
+     - Default: Accepts only DST files
+   - For compatible formats: Copies directly to EMB directory
+   - For other formats: Converts using Inkscape with ink/stitch
    - Sanitizes the output filename (removes spaces/underscores)
-   - If a USB drive with an EMB/Embf directory is found, copies the .jef file there
+   - If a USB drive with an EMB/Embf directory is found:
+     - Copies converted and/or compatible files there
 3. Press 'q' to quit the program
+
+### Examples
+
+```bash
+# Basic usage - DST to JEF conversion only
+dst2jef watch
+
+# Watch for Brother PE800-compatible files
+dst2jef watch --machine "Brother PE800"
+
+# Convert everything to JEF+
+dst2jef watch --output-format jef+
+```
 
 ## Supported Platforms
 
@@ -168,9 +186,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Acknowledgments
 
-- [Inkscape](https://inkscape.org/) - Vector graphics software
-- [ink/stitch](https://inkstitch.org/) - Embroidery extension for Inkscape
+- [Inkscape][inkscape] - Vector graphics software
+- [ink/stitch][inkstitch] - Embroidery extension for Inkscape
 
+[inkscape]: https://inkscape.org/
+[inkstitch]: https://inkstitch.org/
 [inkscape-mac]: https://inkscape.org/release/1.4/mac-os-x/
 [inkscape-win]: https://inkscape.org/release/1.4/windows/
 [inkscape-linux]: https://inkscape.org/release/1.4/linux/
