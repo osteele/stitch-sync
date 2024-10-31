@@ -1,37 +1,37 @@
 Machine Name,File Formats,USB Path,Notes,Design Size
-Brother PE800,"pes","EMB/Embf","","5x7 inch"
-Brother PE535,"pes","EMB/Embf","","4x4 inch"
-Brother SE1900,"pes","EMB/Embf","Combination sewing/embroidery machine.","5x7 inch"
-Brother SE600,"pes","EMB/Embf","Combination sewing/embroidery machine.","4x4 inch"
-Hypercraft 930,"jef, jef+, jpx","EMB/Embf","Equivalent to the Elna eXpressive 850",""
-Janome 200E,"jef","EMB/Embf","",""
-Janome 300E,"jef","Embf5","",""
-Janome 350E,"jef","Embf5/MyDesign","",""
-Janome 9500/9700,"jef","Embf5","",""
-Janome MB4,"jef, jef+, dst","EMB","4-needle machine with RCS unit; built-in memory capacity of 3MB.",""
-Janome MC400E,"jef","EMB","","7.9x7.9 inch"
-Janome MC500E,"jef","EMB","","7.9x11 inch"
-Janome MC9900,"jef, dst","EMB/Embf","","6.7x7.9 inch"
-Janome MC10001,"jef","Embf5","Supports Embf5 through Embf16 folders",""
-Janome MC11000,"jef, dst","EMB/Embf","",""
-Janome MC12000,"jef, dst","EMB/Embf","",""
-Janome MC15000,"jef, dst","EMB/Embf","Main folder not required, EMB/Embf are optional paths",""
-Bernette B70,"exp","","","6x10 inch"
-Bernette B79,"exp","","","6x10 inch"
-Bernina 770,"exp","","","9.5x6 inch"
-Bernina 790,"exp","","","15.7x10.2 inch"
-Singer Futura CE-100,"csd, xxx, hus, dst, zsk, pcs","","","4.5x6.75 inch"
-Singer Legacy SE300,"xxx","","","10.25x6 inch"
-Singer Legacy SE340,"xxx","","","7x12 inch"
-Singer Quantum XL-1000,"xxx, dst, zsk","","Max 15 color stops.","5.5x9.5 inch"
-Singer Quantum XL-5000,"xxx, dst, zsk, pes, pcs, psw","","Max 15 color stops.","5x7 inch"
-Singer Futura CE-250,"fhe, xxx, psw, pec, pes, hus, sew, exp, dst, pcs","","Connects directly to computer.","4.5x6.75 inch"
-Husqvarna Designer Epic2,"vp3, vip","","","360x360mm"
-Husqvarna Designer Ruby90,"vp3, vip","","","360x260mm"
-Pfaff Creative Icon2,"vp3","","","360x360mm"
-Pfaff Creative 4,"vp3","","","360x260mm"
-Janome MB-7,"jef, jef+, dst","EMB","7-needle embroidery machine",""
-Janome Memory Craft 550E,"jef, dst","EMB","",""
-Janome MC300,"jef, dst","EMB","",""
-Janome MC350,"jef, dst","EMB","",""
-Janome MC9500,"jef, dst","Embf5","",""
+Bernette B70,exp,,,6x10 inch
+Bernette B79,exp,,,6x10 inch
+Bernina 770,exp,,,9.5x6 inch
+Bernina 790,exp,,,15.7x10.2 inch
+Brother PE535,"pes,dst,phc,pen",,,4x4 inch
+Brother PE800,"pes,dst,phc,pen",,,5x7 inch
+Brother SE600,"pes,dst,phc,pen",,Equivalent to the Elna eXpressive 850,
+Brother SE1900,"pes,dst,phc,pen",,Combination sewing/embroidery machine.,5x7 inch
+Brother SE2000,"pes,dst,phc,pen",,Combination sewing/embroidery machine.,5x7 inch
+Husqvarna Designer Epic2,"vp3, vip",,,360x360mm
+Husqvarna Designer Ruby90,"vp3, vip",,,360x260mm
+Janome 200E,jef,EMB/Embf,,
+Janome 300E,jef,Embf5,,
+Janome 350E,jef,Embf5/MyDesign,,
+Janome 9500/9700,jef,Embf5,,
+Janome MB4,"jef, jef+, dst",EMB,4-needle machine with RCS unit; built-in memory capacity of 3MB.,
+Janome MB7,"jef, jef+, dst",EMB,7-needle embroidery machine,
+Janome MC10001,jef,Embf5,Supports Embf5 through Embf16 folders,
+Janome MC11000,"jef, dst",EMB/Embf,,
+Janome MC12000,"jef, dst",EMB/Embf,,
+Janome MC15000,"jef, dst",EMB/Embf,"Main folder not required, EMB/Embf are optional paths",
+Janome MC300,"jef, dst",EMB,,
+Janome MC350,"jef, dst",EMB,,
+Janome MC400E,jef,EMB,,7.9x7.9 inch
+Janome MC500E,jef,EMB,,7.9x11 inch
+Janome MC550E,"jef, dst",EMB,,
+Janome MC9500,"jef, dst",Embf5,,
+Janome MC9900,"jef, dst",EMB/Embf,,6.7x7.9 inch
+Pfaff Creative 4,vp3,,,360x260mm
+Pfaff Creative Icon2,vp3,,,360x360mm
+Singer Futura CE-100,"csd, xxx, hus, dst, zsk, pcs",,,4.5x6.75 inch
+Singer Futura CE-250,"fhe, xxx, psw, pec, pes, hus, sew, exp, dst, pcs",,Connects directly to computer.,4.5x6.75 inch
+Singer Legacy SE300,xxx,,,10.25x6 inch
+Singer Legacy SE340,xxx,,,7x12 inch
+Singer Quantum XL-1000,"xxx, dst, zsk",,Max 15 color stops.,5.5x9.5 inch
+Singer Quantum XL-5000,"xxx, dst, zsk, pes, pcs, psw",,Max 15 color stops.,5x7 inch
