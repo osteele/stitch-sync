@@ -168,7 +168,7 @@ fn find_inkstitch_extension(inkscape_path: &Path) -> bool {
     }
 
     #[cfg(target_os = "linux")]
-    {
+    fn find_inkstitch_extension(_inkscape_path: &Path) -> bool {
         // Check in user's home directory
         if let Some(home) = dirs::home_dir() {
             let user_ext = home
@@ -187,11 +187,7 @@ fn find_inkstitch_extension(inkscape_path: &Path) -> bool {
             "/usr/local/share/inkscape/extensions/inkstitch",
         ];
 
-        for path in paths {
-            if Path::new(path).exists() {
-                return true;
-            }
-        }
+        paths.iter().any(|path| Path::new(path).exists())
     }
 
     false

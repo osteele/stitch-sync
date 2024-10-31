@@ -61,10 +61,14 @@ impl UsbDrive {
             Err(_) => return false,
         };
 
-        for device in enumerator.scan_devices().unwrap_or_default() {
-            if let Some(devnode) = device.devnode() {
-                if devnode == device_path {
-                    return device.parent_with_subsystem("usb").is_ok();
+        if let Ok(devices) = enumerator.scan_devices() {
+            for device in devices {
+                if let Some(devnode) = device.devnode() {
+                    if devnode == device_path {
+                        if let Some(parent) = device.parent() {
+                            return parent.subsystem().map_or(false, |s| s == "usb");
+                        }
+                    }
                 }
             }
         }
@@ -121,7 +125,7 @@ impl UsbDrive {
                     if drive.exists() && Self::is_usb_drive(&drive) {
                         Some(UsbDrive {
                             name: format!("Drive ({}:)", drive_letter as char),
-                            path: drive,
+                            mount_point: drive,
                         })
                     } else {
                         None
@@ -145,7 +149,7 @@ impl UsbDrive {
                             if Self::is_usb_drive(&path) {
                                 Some(UsbDrive {
                                     name: entry.file_name().to_string_lossy().into_owned(),
-                                    path,
+                                    mount_point: path,
                                 })
                             } else {
                                 None
@@ -182,14 +186,14 @@ impl UsbDrive {
 
         #[cfg(target_os = "linux")]
         {
-            let result = Command::new("umount").arg(&self.path).output();
+            let result = Command::new("umount").arg(&self.mount_point).output();
 
             match result {
                 Ok(output) if output.status.success() => {
                     let _ = Command::new("udisksctl")
                         .arg("power-off")
                         .arg("-b")
-                        .arg(&self.path)
+                        .arg(&self.mount_point)
                         .output();
                     println!("Successfully ejected drive: {}", self.name);
                 }
@@ -213,7 +217,12 @@ impl UsbDrive {
                 // Convert path to wide string
                 let device_path = format!(
                     "\\\\.\\{}:",
-                    self.path.to_str().unwrap_or("").chars().next().unwrap()
+                    self.mount_point
+                        .to_str()
+                        .unwrap_or("")
+                        .chars()
+                        .next()
+                        .unwrap()
                 );
                 let wide_path: Vec<u16> = OsStr::new(&device_path)
                     .encode_wide()

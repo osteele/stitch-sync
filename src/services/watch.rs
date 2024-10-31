@@ -15,9 +15,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 
-use crate::usb_drive::unmount_usb_volume;
-use crate::{services::file_conversion::handle_file_creation, services::inkscape::InkscapeInfo};
+use crate::services::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
 use crate::{services::inkscape, utils::WATCH_POLL_INTERVAL};
+
+use crate::services::usb_drive::unmount_usb_volume;
 
 #[derive(Debug)]
 pub enum WatcherEvent {

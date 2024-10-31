@@ -1,23 +1,20 @@
 mod config;
 mod services;
 mod types;
-mod usb_drive;
 mod utils;
 
 use clap::Parser;
 use clap::ValueEnum;
 use types::machine::Machine;
 
+use anyhow::Result;
 use std::path::PathBuf;
 
 use crate::config::defaults::DEFAULT_FORMAT;
+use crate::config::ConfigManager;
+use crate::services::find_usb_containing_path;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
-use crate::usb_drive::find_usb_containing_path;
-
-use crate::config::ConfigManager;
-
-use anyhow::Result;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
