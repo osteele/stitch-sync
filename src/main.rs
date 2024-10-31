@@ -44,6 +44,9 @@ enum Commands {
         /// Filter by file format
         #[arg(short, long)]
         format: Option<String>,
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
     },
     /// List supported file formats
     Formats,
@@ -56,6 +59,9 @@ enum MachineCommand {
         /// Filter by file format
         #[arg(short, long)]
         format: Option<String>,
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
     },
     /// Show detailed information for a specific machine
     Info {
@@ -64,7 +70,7 @@ enum MachineCommand {
     },
 }
 
-fn list_machines_command(format: Option<String>) {
+fn list_machines_command(format: Option<String>, verbose: bool) {
     let machines = machines::MACHINES.iter().filter(|machine| {
         format.as_ref().map_or(true, |f| {
             machine
@@ -85,6 +91,17 @@ fn list_machines_command(format: Option<String>) {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
+        if verbose {
+            if let Some(notes) = &machine.notes {
+                println!("  Note: {}", notes);
+            }
+            if let Some(design_size) = &machine.design_size {
+                println!("  Design size: {}", design_size);
+            }
+            if let Some(usb_path) = &machine.usb_path {
+                println!("  USB path: USB Drive:/{:?}", usb_path);
+            }
+        }
     }
 }
 
@@ -141,7 +158,7 @@ fn main() {
             machine,
         } => watch_command(dir, output_format, machine),
         Commands::Machine { command } => match command {
-            MachineCommand::List { format } => list_machines_command(format),
+            MachineCommand::List { format, verbose } => list_machines_command(format, verbose),
             MachineCommand::Info { name } => match machines::get_machine_info(&name) {
                 Some(info) => {
                     println!("{}", info.name);
@@ -163,7 +180,7 @@ fn main() {
                 None => println!("Machine '{}' not found", name),
             },
         },
-        Commands::Machines { format } => list_machines_command(format),
+        Commands::Machines { format, verbose } => list_machines_command(format, verbose),
         Commands::Formats => {
             let mut formats = FILE_FORMATS.to_vec();
             formats.sort_by_key(|format| format.extension);
