@@ -5,6 +5,7 @@ mod usb_drive;
 mod utils;
 
 use clap::Parser;
+use clap::ValueEnum;
 use types::machine::Machine;
 
 use std::path::PathBuf;
@@ -13,6 +14,10 @@ use crate::config::defaults::DEFAULT_FORMAT;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::usb_drive::find_embf_directory;
+
+use crate::config::ConfigManager;
+
+use anyhow::Result;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,6 +56,11 @@ enum Commands {
     },
     /// List supported file formats
     Formats,
+    /// Configuration commands
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
+    },
 }
 
 #[derive(Parser)]
@@ -71,15 +81,40 @@ enum MachineCommand {
     },
 }
 
-fn list_machines_command(format: Option<String>, verbose: bool) {
-    let machines = MACHINES.iter().filter(|machine| {
-        format.as_ref().map_or(true, |f| {
-            machine
-                .formats
-                .iter()
-                .any(|fmt| fmt.eq_ignore_ascii_case(f))
-        })
-    });
+#[derive(Parser)]
+enum ConfigCommand {
+    /// Show current configuration
+    Show,
+    /// Set a configuration value
+    Set {
+        #[arg(value_enum)]
+        key: ConfigKey,
+        value: String,
+    },
+    /// Clear a configuration value
+    Clear {
+        #[arg(value_enum)]
+        key: ConfigKey,
+    },
+}
+
+#[derive(Clone, ValueEnum)]
+enum ConfigKey {
+    /// Watch directory
+    WatchDir,
+    /// Default machine
+    Machine,
+}
+
+fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
+    let machines = if let Some(format) = format {
+        MACHINES
+            .iter()
+            .filter(|m| m.formats.contains(&format.to_lowercase()))
+            .collect::<Vec<_>>()
+    } else {
+        MACHINES.iter().collect()
+    };
 
     for machine in machines {
         println!("{} ({})", machine.name, machine.formats.join(", "));
@@ -95,20 +130,32 @@ fn list_machines_command(format: Option<String>, verbose: bool) {
             }
         }
     }
+    Ok(())
 }
 
 fn watch_command(
     watch_dir: Option<PathBuf>,
     output_format: Option<String>,
     machine_name: Option<String>,
-) {
+) -> Result<()> {
+    let config_manager = ConfigManager::new()?;
+    let config = config_manager.load()?;
+
+    let watch_dir = watch_dir.or(config.watch_dir).unwrap_or_else(|| {
+        dirs::home_dir()
+            .expect("Could not find home directory")
+            .join("Downloads")
+    });
+
+    let machine_name = machine_name.or(config.machine);
+
     let copy_target_dir = find_embf_directory();
     let machine = machine_name
         .as_ref()
         .and_then(|m| Machine::find_by_name(&m));
     if machine_name.is_some() && machine.is_none() {
         println!("Machine '{}' not found", machine_name.unwrap());
-        return;
+        return Ok(());
     }
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
@@ -130,9 +177,10 @@ fn watch_command(
         accepted_formats,
         preferred_format,
     );
+    Ok(())
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command.unwrap_or(Commands::Watch {
@@ -144,13 +192,16 @@ fn main() {
             dir,
             output_format,
             machine,
-        } => watch_command(dir, output_format, machine),
+        } => watch_command(dir, output_format, machine)?,
         Commands::Machine { command } => match command {
-            MachineCommand::List { format, verbose } => list_machines_command(format, verbose),
+            MachineCommand::List { format, verbose } => list_machines_command(format, verbose)?,
             MachineCommand::Info { name } => match Machine::find_by_name(&name) {
                 Some(info) => {
                     println!("{}", info.name);
                     println!("  Formats: {}", info.formats.join(", "));
+                    if let Some(notes) = &info.notes {
+                        println!("  Notes: {}", notes);
+                    }
                     if let Some(path) = &info.usb_path {
                         println!("  USB path: {}", path);
                     }
@@ -161,7 +212,7 @@ fn main() {
                 None => println!("Machine '{}' not found", name),
             },
         },
-        Commands::Machines { format, verbose } => list_machines_command(format, verbose),
+        Commands::Machines { format, verbose } => list_machines_command(format, verbose)?,
         Commands::Formats => {
             let mut formats = FILE_FORMATS.to_vec();
             formats.sort_by_key(|format| format.extension);
@@ -174,5 +225,45 @@ fn main() {
                 println!();
             }
         }
+        Commands::Config { command } => {
+            let config_manager = ConfigManager::new()?;
+            match command {
+                ConfigCommand::Show => {
+                    let config = config_manager.load()?;
+                    if let Some(dir) = &config.watch_dir {
+                        println!("Watch directory: {}", dir.display());
+                    }
+                    if let Some(machine) = &config.machine {
+                        println!("Default machine: {}", machine);
+                    }
+                }
+                ConfigCommand::Set { key, value } => match key {
+                    ConfigKey::WatchDir => {
+                        let path = PathBuf::from(value);
+                        config_manager.set_watch_dir(path)?;
+                        println!("Watch directory set");
+                    }
+                    ConfigKey::Machine => {
+                        if let Some(machine) = Machine::find_by_name(&value) {
+                            config_manager.set_machine(machine.name)?;
+                            println!("Default machine set");
+                        } else {
+                            println!("Machine '{}' not found", value);
+                        }
+                    }
+                },
+                ConfigCommand::Clear { key } => match key {
+                    ConfigKey::WatchDir => {
+                        config_manager.clear_watch_dir()?;
+                        println!("Watch directory cleared");
+                    }
+                    ConfigKey::Machine => {
+                        config_manager.clear_machine()?;
+                        println!("Default machine cleared");
+                    }
+                },
+            }
+        }
     }
+    Ok(())
 }

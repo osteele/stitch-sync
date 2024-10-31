@@ -39,7 +39,7 @@ Basic usage:
 stitch-sync
 ```
 
-(This watches the downloads directory.)
+(This watches the configured directory, or falls back to the downloads directory if not configured.)
 
 Watch a specific directory:
 
@@ -134,13 +134,44 @@ Pfaff Creative 4 (formats: vp3)
 
 ```bash
 # Basic usage - DST to JEF conversion only
-dst2jef watch
+stitch-sync watch
 
 # Watch for Brother PE800-compatible files
-dst2jef watch --machine "Brother PE800"
+stitch-sync watch --machine "Brother PE800"
 
 # Convert everything to JEF+
-dst2jef watch --output-format jef+
+stitch-sync watch --output-format jef+
+```
+
+## Configuration
+
+The program supports a configuration file located at:
+- Linux/macOS: `~/.config/stitch-sync/config.toml`
+- Windows: `%APPDATA%\stitch-sync\config.toml`
+
+Example configuration:
+```toml
+# Default directory to watch
+watch_dir = "/Users/username/Downloads"
+
+# Default machine
+machine = "Brother PE800"
+```
+
+You can set configuration values using the following commands:
+
+```bash
+# Set default watch directory
+stitch-sync config set watch-dir /path/to/directory
+
+# Set default machine
+stitch-sync config set machine "Brother PE800"
+
+# Clear a configuration value
+stitch-sync config clear watch-dir
+
+# View current configuration
+stitch-sync config show
 ```
 
 ## Supported Platforms

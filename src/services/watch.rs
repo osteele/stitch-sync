@@ -25,7 +25,7 @@ pub enum WatcherEvent {
 }
 
 pub fn watch(
-    watch_dir: Option<PathBuf>,
+    watch_dir: PathBuf,
     copy_target_dir: Option<PathBuf>,
     accepted_formats: Vec<String>,
     preferred_format: String,
@@ -45,12 +45,6 @@ pub fn watch(
             return;
         }
     };
-
-    let watch_dir = watch_dir.unwrap_or_else(|| {
-        dirs::home_dir()
-            .expect("Could not find home directory")
-            .join("Downloads")
-    });
 
     if !watch_dir.exists() {
         println!("Directory does not exist: {}", watch_dir.display());
