@@ -156,7 +156,8 @@ fn find_inkstitch_extension(inkscape_path: &Path) -> bool {
 
         // Check in program files
         let prog_ext = inkscape_path.parent().map(|p| p.parent()).map(|p| {
-            p.join("share")
+            p.expect("Failed to find Inkscape installation path")
+                .join("share")
                 .join("inkscape")
                 .join("extensions")
                 .join("inkstitch")

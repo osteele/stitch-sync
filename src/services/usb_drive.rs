@@ -6,13 +6,12 @@ use std::process::Command;
 use windows::{
     core::PCWSTR,
     Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE},
-    Win32::Storage::FileSystem::GetDriveTypeW,
-    Win32::Storage::FileSystem::DRIVE_REMOVABLE,
     Win32::Storage::FileSystem::{
-        CreateFileW, FILE_FLAG_SEQUENTIAL_SCAN, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+        CreateFileW, GetDriveTypeW, FILE_FLAG_SEQUENTIAL_SCAN, FILE_SHARE_READ, FILE_SHARE_WRITE,
+        OPEN_EXISTING,
     },
-    Win32::Storage::FileSystem::{GetVolumeNameForVolumeMountPointW, VOLUME_NAME_SIZE},
-    Win32::System::Ioctl::{DeviceIoControl, IOCTL_STORAGE_EJECT_MEDIA},
+    Win32::System::Ioctl::IOCTL_STORAGE_EJECT_MEDIA,
+    Win32::System::IO::DeviceIoControl,
 };
 
 #[cfg(target_os = "linux")]
@@ -39,7 +38,7 @@ impl UsbDrive {
             .collect();
         wide.push(0);
 
-        unsafe { GetDriveTypeW(PCWSTR::from_raw(wide.as_ptr())) == DRIVE_REMOVABLE }
+        unsafe { GetDriveTypeW(PCWSTR::from_raw(wide.as_ptr())) == 2 }
     }
 
     #[cfg(target_os = "linux")]
@@ -211,10 +210,9 @@ impl UsbDrive {
         {
             use std::ffi::OsStr;
             use std::os::windows::ffi::OsStrExt;
-            use std::ptr::null_mut;
+            use std::ptr;
 
             unsafe {
-                // Convert path to wide string
                 let device_path = format!(
                     "\\\\.\\{}:",
                     self.mount_point
@@ -229,41 +227,48 @@ impl UsbDrive {
                     .chain(std::iter::once(0))
                     .collect();
 
-                // Open handle to device
-                let handle = CreateFileW(
+                let handle_result = CreateFileW(
                     PCWSTR::from_raw(wide_path.as_ptr()),
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                    0x80000000 | 0x40000000, // GENERIC_READ | GENERIC_WRITE
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    null_mut(),
+                    Some(ptr::null()),
                     OPEN_EXISTING,
                     FILE_FLAG_SEQUENTIAL_SCAN,
                     HANDLE(0),
                 );
 
-                if handle == INVALID_HANDLE_VALUE {
-                    println!("Error opening drive handle");
-                    return;
-                }
+                match handle_result {
+                    Ok(handle) => {
+                        if handle == INVALID_HANDLE_VALUE {
+                            println!("Error opening drive handle");
+                            return;
+                        }
 
-                // Try to eject the media
-                let mut bytes_returned: u32 = 0;
-                let result = DeviceIoControl(
-                    handle,
-                    IOCTL_STORAGE_EJECT_MEDIA,
-                    null_mut(),
-                    0,
-                    null_mut(),
-                    0,
-                    &mut bytes_returned,
-                    null_mut(),
-                );
+                        // Try to eject the media
+                        let mut bytes_returned: u32 = 0;
+                        let result = DeviceIoControl(
+                            handle,
+                            IOCTL_STORAGE_EJECT_MEDIA,
+                            None,
+                            0,
+                            None,
+                            0,
+                            Some(&mut bytes_returned),
+                            None,
+                        );
 
-                CloseHandle(handle);
+                        // Close handle before checking result
+                        let _ = CloseHandle(handle);
 
-                if result.as_bool() {
-                    println!("Successfully ejected drive: {}", self.name);
-                } else {
-                    println!("Error ejecting drive");
+                        if result.as_bool() {
+                            println!("Successfully ejected drive: {}", self.name);
+                        } else {
+                            println!("Error ejecting drive");
+                        }
+                    }
+                    Err(_) => {
+                        println!("Failed to open drive handle");
+                    }
                 }
             }
         }
