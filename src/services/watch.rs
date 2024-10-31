@@ -114,6 +114,9 @@ pub fn watch_directory(
     }
 
     println!("Watching directory: {}", path.as_ref().display());
+    if let Some(ref dir) = copy_target_dir {
+        println!("Files will be copied to this directory: {}", dir.display());
+    }
     println!("Press 'q' to quit, 'u' to unmount USB volume");
 
     enable_raw_mode().unwrap();

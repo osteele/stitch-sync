@@ -19,7 +19,7 @@ use windows::{
 use libudev::Enumerator;
 
 pub struct UsbDrive {
-    pub path: PathBuf,
+    pub mount_point: PathBuf,
     pub name: String,
 }
 
@@ -104,7 +104,7 @@ impl UsbDrive {
                     if Self::is_usb_drive(&path) {
                         Some(UsbDrive {
                             name: entry.file_name().to_string_lossy().into_owned(),
-                            path,
+                            mount_point: path,
                         })
                     } else {
                         None
@@ -163,7 +163,7 @@ impl UsbDrive {
         {
             let result = Command::new("diskutil")
                 .arg("eject")
-                .arg(&self.path)
+                .arg(&self.mount_point)
                 .output();
 
             match result {
@@ -261,12 +261,12 @@ impl UsbDrive {
     }
 }
 
-pub fn find_embf_directory() -> Option<PathBuf> {
+pub fn find_usb_containing_path(path: &str) -> Option<PathBuf> {
     UsbDrive::find_usb_drives()
         .into_iter()
-        .map(|drive| drive.path)
-        .find(|path| path.join("embf").is_dir())
-        .map(|path| path.join("embf"))
+        .map(|drive| drive.mount_point)
+        .find(|mount_point| mount_point.join(path).is_dir())
+        .map(|mount_point| mount_point.join(path))
 }
 
 pub fn unmount_usb_volume() {

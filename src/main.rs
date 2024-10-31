@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
-use crate::usb_drive::find_embf_directory;
+use crate::usb_drive::find_usb_containing_path;
 
 use crate::config::ConfigManager;
 
@@ -148,8 +148,6 @@ fn watch_command(
     });
 
     let machine_name = machine_name.or(config.machine);
-
-    let copy_target_dir = find_embf_directory();
     let machine = machine_name
         .as_ref()
         .and_then(|m| Machine::find_by_name(&m));
@@ -157,6 +155,14 @@ fn watch_command(
         println!("Machine '{}' not found", machine_name.unwrap());
         return Ok(());
     }
+
+    let copy_target_path = machine
+        .as_ref()
+        .map(|m| m.usb_path.as_deref())
+        .flatten()
+        .unwrap_or("");
+    let copy_target_dir = find_usb_containing_path(&copy_target_path);
+
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
         Some(machine) => {
