@@ -1,3 +1,5 @@
+pub mod color;
+
 mod csv_reader;
 mod files;
 mod progress;

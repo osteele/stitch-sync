@@ -5,12 +5,13 @@ use std::process::Command;
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::services::inkscape::InkscapeInfo;
+use crate::services::inkscape::{self, Inkscape};
 use crate::types::format::FileFormat;
 use crate::utils;
+use crate::utils::color::red;
 use crate::utils::sanitize_filename;
 
-fn should_convert_file(path: &Path, inkscape_info: &InkscapeInfo, output_format: &str) -> bool {
+fn should_convert_file(path: &Path, inkscape_info: &Inkscape, output_format: &str) -> bool {
     let extension = path
         .extension()
         .and_then(|e| e.to_str())
@@ -49,7 +50,7 @@ fn should_convert_file(path: &Path, inkscape_info: &InkscapeInfo, output_format:
 
 fn convert_file(
     path: &Path,
-    inkscape_info: &InkscapeInfo,
+    inkscape_info: &Inkscape,
     output_format: &str,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let mut stdout = io::stdout();
@@ -91,16 +92,19 @@ fn convert_file(
         );
     }
 
-    println!("done");
-
-    if !output.status.success() {
-        let error = String::from_utf8_lossy(&output.stderr);
-        if error.contains("extension not found") || error.contains("unknown extension") {
-            println!("ink/stitch extension not installed or not working properly. Please download and install from https://inkstitch.org/docs/install/");
-        } else {
-            println!("Error converting file: {}", error);
-        }
-        return Err("Conversion failed".into());
+    let error = String::from_utf8_lossy(&output.stderr);
+    if error.contains("extension not found")
+        || error.contains("unknown extension")
+        || error.contains("Could not detect file format")
+    {
+        let msg = format!(
+            "ink/stitch extension not installed or not working properly. Please download and install from {}",
+            inkscape::INKSTITCH_INSTALL_URL
+        );
+        return Err(msg.into());
+    } else if !output.status.success() {
+        println!("{}", red(&format!("Error converting file: {}", error)));
+        return Err("Inkscape conversion failed".into());
     }
 
     let elapsed = start.elapsed();
@@ -116,7 +120,7 @@ fn convert_file(
 
 pub fn handle_file_creation(
     path: &Path,
-    inkscape_info: &InkscapeInfo,
+    inkscape_info: &Inkscape,
     embf_dir: &Option<PathBuf>,
     accepted_formats: &[String],
     preferred_format: &str,
@@ -161,13 +165,18 @@ pub fn handle_file_creation(
     }
 
     // Convert the file to preferred format
-    if let Ok(output_path) = convert_file(path, inkscape_info, preferred_format) {
-        if let Some(ref embf_dir) = embf_dir {
-            let dest = embf_dir.join(output_path.file_name().unwrap());
-            std::fs::copy(&output_path, &dest)?;
-            println!("  Copied to target directory: {}", dest.display());
-        } else {
-            // println!("  No copy target directory specified, skipping copy");
+    match convert_file(path, inkscape_info, preferred_format) {
+        Ok(output_path) => {
+            if let Some(ref embf_dir) = embf_dir {
+                let dest = embf_dir.join(output_path.file_name().unwrap());
+                std::fs::copy(&output_path, &dest)?;
+                println!("  Copied to target directory: {}", dest.display());
+            } else {
+                // println!("  No copy target directory specified, skipping copy");
+            }
+        }
+        Err(e) => {
+            println!("{}", red(&format!("Error converting file: {}", e)));
         }
     }
 

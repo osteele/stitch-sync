@@ -15,8 +15,12 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 
-use crate::services::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
-use crate::{services::inkscape, utils::WATCH_POLL_INTERVAL};
+use crate::services::{
+    file_conversion::handle_file_creation,
+    inkscape::{self, Inkscape},
+    usb_drive::UsbDrive,
+};
+use crate::utils::WATCH_POLL_INTERVAL;
 
 use crate::services::usb_drive::unmount_usb_volume;
 
@@ -39,10 +43,13 @@ pub fn watch(
     })
     .expect("Error setting Ctrl-C handler");
 
-    let inkscape_info = match inkscape::find_inkscape() {
+    let inkscape = match Inkscape::find_app() {
         Some(info) => info,
         None => {
-            println!("Inkscape not found. Please download and install from https://inkscape.org/release/1.4/mac-os-x/");
+            println!(
+                "Inkscape not found. Please download and install from {}",
+                inkscape::INKSCAPE_DOWNLOAD_URL
+            );
             return;
         }
     };
@@ -52,10 +59,7 @@ pub fn watch(
         return;
     }
 
-    println!(
-        "Setting up file watcher for directory: {}",
-        watch_dir.display()
-    );
+    println!("Watching directory: {}", watch_dir.display());
 
     let (fs_tx, rx) = channel();
 
@@ -87,7 +91,7 @@ pub fn watch(
     watch_directory(
         watch_dir,
         rx,
-        inkscape_info,
+        inkscape,
         copy_target_dir,
         accepted_formats,
         preferred_format,
@@ -96,16 +100,16 @@ pub fn watch(
 }
 
 pub fn watch_directory(
-    path: impl AsRef<Path>,
+    _path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
-    inkscape_info: InkscapeInfo,
+    inkscape: Inkscape,
     copy_target_dir: Option<PathBuf>,
     accepted_formats: Vec<String>,
     preferred_format: String,
 ) {
     let warn_inkstitch = false;
 
-    if warn_inkstitch && !inkscape_info.has_inkstitch {
+    if warn_inkstitch && !inkscape.has_inkstitch {
         println!("Warning: ink/stitch extension not found. Please install from https://inkstitch.org/docs/install/");
     }
 
@@ -114,11 +118,18 @@ pub fn watch_directory(
         println!("Files will be copied to this directory");
     }
 
-    println!("Watching directory: {}", path.as_ref().display());
     if let Some(ref dir) = copy_target_dir {
         println!("Files will be copied to this directory: {}", dir.display());
     }
-    println!("Press 'q' to quit, 'u' to unmount USB volume");
+    let quit_msg = format!(
+        "Press 'q' to quit{}",
+        if UsbDrive::find_usb_drives().len() > 0 {
+            ", 'u' to unmount USB volume"
+        } else {
+            ""
+        }
+    );
+    println!("{}", quit_msg);
 
     enable_raw_mode().unwrap();
     defer! {
@@ -135,7 +146,7 @@ pub fn watch_directory(
                         for path in event.paths {
                             if let Err(e) = handle_file_creation(
                                 &path,
-                                &inkscape_info,
+                                &inkscape,
                                 &copy_target_dir,
                                 &accepted_formats,
                                 &preferred_format,

@@ -5,6 +5,8 @@ mod utils;
 
 use clap::Parser;
 use clap::ValueEnum;
+use services::inkscape;
+use services::Inkscape;
 use types::machine::Machine;
 
 use anyhow::Result;
@@ -15,6 +17,7 @@ use crate::config::ConfigManager;
 use crate::services::find_usb_containing_path;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
+use crate::utils::color::red;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -137,6 +140,26 @@ fn watch_command(
 ) -> Result<()> {
     let config_manager = ConfigManager::new()?;
     let config = config_manager.load()?;
+
+    let inkscape = Inkscape::find_app();
+    if inkscape.is_none() {
+        println!(
+            "Inkscape not found. Please download and install from {}",
+            inkscape::INKSCAPE_DOWNLOAD_URL
+        );
+        println!("Opening download page in your browser...");
+        services::open_browser(inkscape::INKSCAPE_DOWNLOAD_URL);
+        return Ok(());
+    }
+    if !inkscape.unwrap().has_inkstitch {
+        println!(
+            "{}",
+            red(&format!(
+                "Warning: ink/stitch extension not found. Please install from {}",
+                inkscape::INKSTITCH_INSTALL_URL
+            ))
+        );
+    }
 
     let watch_dir = watch_dir.or(config.watch_dir).unwrap_or_else(|| {
         dirs::home_dir()
