@@ -5,11 +5,11 @@ mod usb_drive;
 mod utils;
 
 use clap::Parser;
+use types::machine::Machine;
 
 use std::path::PathBuf;
 
 use crate::config::defaults::DEFAULT_FORMAT;
-use crate::types::machine;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::usb_drive::find_embf_directory;
@@ -105,7 +105,7 @@ fn watch_command(
     let copy_target_dir = find_embf_directory();
     let machine = machine_name
         .as_ref()
-        .and_then(|m| machine::get_machine_info(&m));
+        .and_then(|m| Machine::find_by_name(&m));
     if machine_name.is_some() && machine.is_none() {
         println!("Machine '{}' not found", machine_name.unwrap());
         return;
@@ -147,7 +147,7 @@ fn main() {
         } => watch_command(dir, output_format, machine),
         Commands::Machine { command } => match command {
             MachineCommand::List { format, verbose } => list_machines_command(format, verbose),
-            MachineCommand::Info { name } => match machine::get_machine_info(&name) {
+            MachineCommand::Info { name } => match Machine::find_by_name(&name) {
                 Some(info) => {
                     println!("{}", info.name);
                     println!("  Formats: {}", info.formats.join(", "));

@@ -138,8 +138,10 @@ lazy_static! {
     ];
 }
 
-pub fn find_by_extension(extension: &str) -> Option<&'static FileFormat> {
-    FILE_FORMATS.iter().find(|f| f.extension == extension)
+impl FileFormat {
+    pub fn find_by_extension(extension: &str) -> Option<&'static FileFormat> {
+        FILE_FORMATS.iter().find(|f| f.extension == extension)
+    }
 }
 
 #[cfg(test)]
@@ -189,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_find_by_extension() {
-        assert!(find_by_extension("dst").is_some());
-        assert!(find_by_extension("nonexistent").is_none());
+        assert!(FileFormat::find_by_extension("dst").is_some());
+        assert!(FileFormat::find_by_extension("nonexistent").is_none());
     }
 }

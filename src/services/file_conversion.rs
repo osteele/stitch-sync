@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use crate::services::inkscape::InkscapeInfo;
-use crate::types::format;
+use crate::types::format::FileFormat;
 use crate::utils;
 use crate::utils::sanitize_filename;
 
@@ -127,7 +127,7 @@ pub fn handle_file_creation(
         .map(|s| s.to_lowercase())
         .unwrap_or_default();
 
-    if format::find_by_extension(&extension).is_some()
+    if FileFormat::find_by_extension(&extension).is_some()
         || accepted_formats.iter().any(|fmt| fmt == &extension)
         || inkscape_info
             .supported_read_formats

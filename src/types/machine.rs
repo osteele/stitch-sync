@@ -5,7 +5,7 @@ use std::io::Cursor;
 use crate::utils::get_column_index;
 
 #[derive(Debug, Clone)]
-pub struct MachineInfo {
+pub struct Machine {
     pub name: String,
     pub formats: Vec<String>,
     pub usb_path: Option<String>,
@@ -13,7 +13,7 @@ pub struct MachineInfo {
     pub design_size: Option<String>,
 }
 
-impl MachineInfo {
+impl Machine {
     pub fn new(
         name: String,
         formats: Vec<&str>,
@@ -30,10 +30,17 @@ impl MachineInfo {
             design_size,
         }
     }
+
+    pub fn find_by_name(name: &str) -> Option<Machine> {
+        MACHINES
+            .iter()
+            .find(|machine| machine.name == name)
+            .cloned()
+    }
 }
 
 lazy_static! {
-    pub static ref MACHINES: Vec<MachineInfo> = {
+    pub static ref MACHINES: Vec<Machine> = {
         let csv_data = include_str!("./machines.csv");
         let mut reader = ReaderBuilder::new()
             .has_headers(true)
@@ -51,7 +58,7 @@ lazy_static! {
             let record = result.unwrap();
             let formats: Vec<&str> = record[formats_idx].split(',').map(|s| s.trim()).collect();
 
-            machines.push(MachineInfo::new(
+            machines.push(Machine::new(
                 record[name_idx].to_string(),
                 formats,
                 Some(record[usb_idx].to_string()).filter(|s| !s.is_empty()),
@@ -61,13 +68,6 @@ lazy_static! {
         }
         machines
     };
-}
-
-pub fn get_machine_info(name: &str) -> Option<MachineInfo> {
-    MACHINES
-        .iter()
-        .find(|machine| machine.name == name)
-        .cloned()
 }
 
 #[cfg(test)]
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_get_machine_info() {
-        assert!(get_machine_info("Brother PE800").is_some());
-        assert!(get_machine_info("Nonexistent Machine").is_none());
+        assert!(Machine::find_by_name("Brother PE800").is_some());
+        assert!(Machine::find_by_name("Nonexistent Machine").is_none());
     }
 }
