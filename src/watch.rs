@@ -16,9 +16,9 @@ use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
+use crate::inkscape;
 use crate::usb_drive::unmount_usb_volume;
 use crate::{file_conversion::handle_file_creation, inkscape::InkscapeInfo};
-use crate::{inkscape, machines::MachineInfo};
 
 #[derive(Debug)]
 pub enum WatcherEvent {
@@ -28,8 +28,8 @@ pub enum WatcherEvent {
 pub fn watch(
     watch_dir: Option<PathBuf>,
     copy_target_dir: Option<PathBuf>,
-    output_format: Option<String>,
-    machine: &Option<MachineInfo>,
+    accepted_formats: Vec<String>,
+    preferred_format: String,
 ) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
@@ -44,25 +44,6 @@ pub fn watch(
         None => {
             println!("Inkscape not found. Please download and install from https://inkscape.org/release/1.4/mac-os-x/");
             return;
-        }
-    };
-
-    // Determine accepted formats and preferred format
-    let (accepted_formats, preferred_format) = match &machine {
-        Some(machine) => {
-            let formats: Vec<String> = machine
-                .formats
-                .iter()
-                .map(|f| f.extension.to_string())
-                .collect();
-            let preferred = output_format
-                .or_else(|| formats.first().map(|s| s.to_string()))
-                .unwrap_or_else(|| "dst".to_string());
-            (formats, preferred)
-        }
-        None => {
-            let preferred = output_format.unwrap_or_else(|| "dst".to_string());
-            (vec![preferred.clone()], preferred)
         }
     };
 

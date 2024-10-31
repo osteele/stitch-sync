@@ -95,13 +95,36 @@ fn watch_command(
 ) {
     let copy_target_dir = find_embf_directory();
     let machine = machine_name
-        .clone()
+        .as_ref()
         .and_then(|m| machines::get_machine_info(&m));
     if machine_name.is_some() && machine.is_none() {
         println!("Machine '{}' not found", machine_name.unwrap());
         return;
     }
-    watch::watch(watch_dir, copy_target_dir, output_format, &machine);
+    // Determine accepted formats and preferred format
+    let (accepted_formats, preferred_format) = match &machine {
+        Some(machine) => {
+            let formats: Vec<String> = machine
+                .formats
+                .iter()
+                .map(|f| f.extension.to_string())
+                .collect();
+            let preferred = output_format
+                .or_else(|| formats.first().map(|s| s.to_string()))
+                .unwrap_or_else(|| "dst".to_string());
+            (formats, preferred)
+        }
+        None => {
+            let preferred = output_format.unwrap_or_else(|| "dst".to_string());
+            (vec![preferred.clone()], preferred)
+        }
+    };
+    watch::watch(
+        watch_dir,
+        copy_target_dir,
+        accepted_formats,
+        preferred_format,
+    );
 }
 
 fn main() {
