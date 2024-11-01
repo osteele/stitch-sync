@@ -77,4 +77,8 @@ cd - > /dev/null
 rm -rf "$TMP_DIR"
 
 echo "Successfully installed StitchSync ${RELEASE_VERSION} to ${INSTALL_DIR}/${EXE_NAME}"
+echo
 echo "Run 'stitch-sync --help' to get started"
+echo "Run 'stitch-sync config set machine' to set your embroidery machine"
+echo "Run 'stitch-sync list-machines' to see a list of supported machines"
+echo "Run 'stitch-sync watch' to start watching for new designs"

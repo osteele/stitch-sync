@@ -8,6 +8,7 @@ mod utils;
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
+use types::MACHINES;
 
 use crate::cli::*;
 use crate::commands::*;
@@ -79,16 +80,27 @@ fn main() -> Result<()> {
                 }
                 ConfigCommand::Set { key, value } => match key {
                     ConfigKey::WatchDir => {
-                        let path = PathBuf::from(value);
+                        let path = PathBuf::from(value.expect("Watch directory path is required"));
                         config_manager.set_watch_dir(path)?;
                         println!("Watch directory set");
                     }
                     ConfigKey::Machine => {
-                        if let Some(machine) = Machine::interactive_find_by_name(&value) {
+                        let machine = if let Some(name) = value {
+                            Machine::interactive_find_by_name(&name)
+                        } else {
+                            // Show list of all machines and let user choose
+                            println!("Select your embroidery machine:");
+                            let names: Vec<String> =
+                                MACHINES.iter().map(|m| m.name.clone()).collect();
+                            let index = utils::prompt_from_list(&names);
+                            index.map(|i| MACHINES[i].clone())
+                        };
+
+                        if let Some(machine) = machine {
                             config_manager.set_machine(machine.name)?;
                             println!("Default machine set");
                         } else {
-                            println!("Machine '{}' not found", value);
+                            println!("No machine selected");
                         }
                     }
                 },

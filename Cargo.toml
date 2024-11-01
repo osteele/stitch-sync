@@ -3,9 +3,9 @@ name = "stitch-sync"
 version = "0.1.0"
 edition = "2021"
 authors = ["Oliver Steele <steele@osteele.com>"]
-description = "Automatically convert DST embroidery files to JEF format using Inkscape and ink/stitch"
+description = "Automatically convert embroidery files and optionally copy them to a USB drive"
 license = "MIT"
-repository = "https://github.com/yourusername/dst2jef"
+repository = "https://github.com/osteele/stitch-sync"
 keywords = ["embroidery", "conversion", "inkscape", "dst", "jef"]
 categories = ["command-line-utilities"]
 

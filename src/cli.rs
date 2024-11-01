@@ -3,9 +3,14 @@ use clap::ValueEnum;
 
 use std::path::PathBuf;
 
-
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, after_help = "\n\
+\x1B[1;4mQuick Start Guide:\x1B[0m
+  Run 'stitch-sync config set machine' to set your embroidery machine
+  Run 'stitch-sync machine list' to see supported machines
+  Run 'stitch-sync watch' to start watching for new designs
+
+For more details, use --help with any command")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -74,7 +79,8 @@ pub enum ConfigCommand {
     Set {
         #[arg(value_enum)]
         key: ConfigKey,
-        value: String,
+        /// Value to set (if not provided, will prompt for input)
+        value: Option<String>,
     },
     /// Clear a configuration value
     Clear {
