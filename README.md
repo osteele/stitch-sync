@@ -23,6 +23,16 @@ It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
 
 ## Installation
 
+### From precompiled binaries
+
+Run this in the terminal to install the latest version:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/osteele/stitchsync/refs/heads/main/scripts/install.sh)"
+```
+
+### From source
+
 ```bash
 # Clone the repository
 git clone https://github.com/osteele/stitch-sync
