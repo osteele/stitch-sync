@@ -1,6 +1,5 @@
 name: Release
 
-# Add these permission settings at the workflow level
 permissions:
   contents: write
 
@@ -27,7 +26,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -56,8 +55,7 @@ jobs:
           tar -czf stitch-sync-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release ${{ matrix.artifact_name }}
 
       - name: Upload Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: stitch-sync-${{ matrix.target }}.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
