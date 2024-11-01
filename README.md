@@ -1,4 +1,5 @@
 # Stitch-sync
+[![Cross-Platform Test](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml/badge.svg)](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml)
 
 An automated embroidery file converter that watches for design files and prepares them for your embroidery machine.
 
