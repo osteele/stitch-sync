@@ -55,7 +55,7 @@ jobs:
           tar -czf stitch-sync-${{ matrix.target }}.tar.gz -C target/${{ matrix.target }}/release ${{ matrix.artifact_name }}
 
       - name: Upload Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.0.8
         with:
           files: stitch-sync-${{ matrix.target }}.tar.gz
           token: ${{ secrets.GITHUB_TOKEN }}
