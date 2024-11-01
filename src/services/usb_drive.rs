@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -86,8 +87,11 @@ impl UsbDrive {
 
         let info = String::from_utf8_lossy(&output.stdout);
 
-        // Check if the device is removable and has USB in its protocol
-        info.contains("Removable Media: Yes") && info.contains("Protocol: USB")
+        let removable_re = Regex::new(r"^\s*Removable Media:\s+(Yes|Removable)\s*$").unwrap();
+        let protocol_re = Regex::new(r"^\s*Protocol:\s+USB\s*$").unwrap();
+
+        info.lines().any(|line| removable_re.is_match(line))
+            && info.lines().any(|line| protocol_re.is_match(line))
     }
 
     pub fn find_usb_drives() -> Vec<UsbDrive> {

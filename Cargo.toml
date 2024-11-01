@@ -28,6 +28,7 @@ anyhow = "1.0.91"
 toml = "0.8"
 serde_yaml = "0.9"
 strsim = "0.10.0"
+regex = "1.10.2"
 
 # Linux-specific crates
 [target.'cfg(target_os = "linux")'.dependencies]
