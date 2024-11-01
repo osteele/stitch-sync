@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use crate::cli::*;
 use crate::commands::*;
 use crate::config::ConfigManager;
-use crate::types::machine::Machine;
+use crate::types::Machine;
 use crate::types::FILE_FORMATS;
 
 fn main() -> Result<()> {

@@ -29,10 +29,10 @@ pub enum WatcherEvent {
 }
 
 pub fn watch(
-    watch_dir: PathBuf,
-    copy_target_dir: Option<PathBuf>,
-    accepted_formats: Vec<String>,
-    preferred_format: String,
+    watch_dir: &PathBuf,
+    usb_target_path: &Option<&str>,
+    accepted_formats: &[&str],
+    preferred_format: &str,
 ) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
@@ -77,7 +77,7 @@ pub fn watch(
     };
 
     // Set up watching with error handling
-    match watcher.watch(&watch_dir, RecursiveMode::NonRecursive) {
+    match watcher.watch(watch_dir, RecursiveMode::NonRecursive) {
         Ok(_) => (),
         Err(e) => {
             eprintln!("Failed to watch directory: {:?}", e);
@@ -89,7 +89,7 @@ pub fn watch(
         watch_dir,
         rx,
         inkscape,
-        copy_target_dir,
+        usb_target_path,
         accepted_formats,
         preferred_format,
     );
@@ -100,24 +100,10 @@ pub fn watch_directory(
     _path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
     inkscape: Inkscape,
-    copy_target_dir: Option<PathBuf>,
-    accepted_formats: Vec<String>,
-    preferred_format: String,
+    usb_target_path: &Option<&str>,
+    accepted_formats: &[&str],
+    preferred_format: &str,
 ) {
-    let warn_inkstitch = false;
-
-    if warn_inkstitch && !inkscape.has_inkstitch {
-        println!("Warning: ink/stitch extension not found. Please install from https://inkstitch.org/docs/install/");
-    }
-
-    if let Some(ref dir) = copy_target_dir {
-        println!("Found EMB directory: {}", dir.display());
-        println!("Files will be copied to this directory");
-    }
-
-    if let Some(ref dir) = copy_target_dir {
-        println!("Files will be copied to this directory: {}", dir.display());
-    }
     let quit_msg = format!(
         "Press 'q' to quit{}",
         if !UsbDrive::find_usb_drives().is_empty() {
@@ -144,9 +130,9 @@ pub fn watch_directory(
                             if let Err(e) = handle_file_creation(
                                 &path,
                                 &inkscape,
-                                &copy_target_dir,
-                                &accepted_formats,
-                                &preferred_format,
+                                usb_target_path,
+                                accepted_formats,
+                                preferred_format,
                             ) {
                                 eprintln!("Error handling file creation: {}", e);
                             }

@@ -61,11 +61,11 @@ impl Inkscape {
 
     pub fn convert_file(
         &self,
-        path: &Path,
+        input_path: &Path,
         output_path: &PathBuf,
     ) -> Result<PathBuf, Box<dyn Error>> {
         let mut child = Command::new(&self.path)
-            .arg(path)
+            .arg(input_path)
             .arg("--export-filename")
             .arg(output_path)
             .stdout(std::process::Stdio::piped())

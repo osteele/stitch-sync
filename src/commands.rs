@@ -86,11 +86,13 @@ pub fn watch_command(
         return Ok(());
     }
 
-    let copy_target_path = machine
+    let usb_target_path = machine
         .as_ref()
         .and_then(|m| m.usb_path.as_deref())
-        .unwrap_or("");
-    let copy_target_dir = find_usb_containing_path(copy_target_path);
+        .unwrap_or_default();
+    if let Some(usb_target_dir) = find_usb_containing_path(usb_target_path) {
+        println!("USB target directory: {}", usb_target_dir.display());
+    }
 
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
@@ -122,7 +124,7 @@ pub fn watch_command(
     };
 
     println!("Watching directory: {}", watch_dir.display());
-    if let Some(machine) = machine {
+    if let Some(ref machine) = machine {
         println!("Machine: {}", machine.name);
     }
     // let mut watch_formats = Vec::new();
@@ -139,10 +141,13 @@ pub fn watch_command(
     // println!("Watching for formats: {}", watch_formats.join(", "));
 
     services::watch_dir(
-        watch_dir,
-        copy_target_dir,
-        accepted_formats,
-        preferred_format,
+        &watch_dir,
+        &Some(usb_target_path),
+        &accepted_formats
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>(),
+        &preferred_format,
     );
     Ok(())
 }

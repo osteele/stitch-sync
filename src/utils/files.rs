@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-pub fn sanitize_filename(path: &Path) -> PathBuf {
-    let stem = path
+pub fn sanitize_filename(input: &Path) -> PathBuf {
+    let stem = input
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or("output");
@@ -30,10 +30,14 @@ pub fn sanitize_filename(path: &Path) -> PathBuf {
 
     // If somehow we end up with an empty string, use a default
     let sanitized = if sanitized.is_empty() {
-        "output"
+        PathBuf::from("output")
     } else {
-        sanitized
+        PathBuf::from(sanitized)
     };
 
-    path.with_file_name(format!("{}.jef", sanitized))
+    let output_name = input
+        .extension()
+        .map(|ext| sanitized.with_extension(ext))
+        .unwrap_or(sanitized);
+    input.with_file_name(output_name)
 }

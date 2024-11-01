@@ -18,7 +18,9 @@ lazy_static! {
 }
 
 impl FileFormat {
+    #[allow(dead_code)]
     pub fn find_by_extension(extension: &str) -> Option<&'static FileFormat> {
+        let extension = extension.to_lowercase();
         FILE_FORMATS.iter().find(|f| f.extension == extension)
     }
 }
