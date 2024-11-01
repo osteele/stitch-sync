@@ -194,13 +194,27 @@ fn watch_command(
             let formats = machine.formats.clone();
             let preferred = output_format
                 .or_else(|| formats.first().map(|s| s.to_string()))
-                .unwrap_or_else(|| DEFAULT_FORMAT.to_string());
+                .unwrap_or_else(|| DEFAULT_FORMAT.to_string())
+                .to_lowercase();
             (formats, preferred)
         }
         None => {
             let preferred = output_format.unwrap_or_else(|| DEFAULT_FORMAT.to_string());
             (vec![preferred.clone()], preferred)
         }
+    };
+
+    // Convert preferred format to 'jef' if it ends with 'jef+'
+    let preferred_format = if preferred_format == "jef+"
+        && !inkscape
+            .as_ref()
+            .unwrap()
+            .supported_write_formats
+            .contains(&preferred_format.as_str())
+    {
+        "jef".to_string()
+    } else {
+        preferred_format
     };
 
     println!("Watching directory: {}", watch_dir.display());

@@ -1,13 +1,10 @@
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::Duration;
 use std::time::Instant;
 
-use crate::services::inkscape::{self, Inkscape};
+use crate::services::inkscape::Inkscape;
 use crate::types::format::FileFormat;
-use crate::utils;
 use crate::utils::color::red;
 use crate::utils::sanitize_filename;
 
@@ -50,7 +47,7 @@ fn should_convert_file(path: &Path, inkscape_info: &Inkscape, output_format: &st
 
 fn convert_file(
     path: &Path,
-    inkscape_info: &Inkscape,
+    inkscape: &Inkscape,
     output_format: &str,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let mut stdout = io::stdout();
@@ -63,51 +60,11 @@ fn convert_file(
 
     let mut output_path = sanitize_filename(path);
     output_path.set_extension(output_format);
+
     let start = Instant::now();
-
-    let mut child = Command::new(&inkscape_info.path)
-        .arg(path)
-        .arg("--export-filename")
-        .arg(&output_path)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()?;
-
-    let dot_interval = Duration::from_secs(1);
-    let poll_interval = Duration::from_millis(50);
-    utils::wait_with_progress(&mut child, dot_interval, poll_interval)?;
-
-    let output = child.wait_with_output()?;
-
-    if !output.stdout.is_empty() {
-        println!(
-            "\nInkscape output: {}",
-            String::from_utf8_lossy(&output.stdout)
-        );
-    }
-    if !output.stderr.is_empty() {
-        println!(
-            "\nInkscape error: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    let error = String::from_utf8_lossy(&output.stderr);
-    if error.contains("extension not found")
-        || error.contains("unknown extension")
-        || error.contains("Could not detect file format")
-    {
-        let msg = format!(
-            "ink/stitch extension not installed or not working properly. Please download and install from {}",
-            inkscape::INKSTITCH_INSTALL_URL
-        );
-        return Err(msg.into());
-    } else if !output.status.success() {
-        println!("{}", red(&format!("Error converting file: {}", error)));
-        return Err("Inkscape conversion failed".into());
-    }
-
+    inkscape.convert_file(path, &output_path)?;
     let elapsed = start.elapsed();
+
     println!(
         "  Converted to {} format: {} ({:.2}s elapsed time)",
         output_format,

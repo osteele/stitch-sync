@@ -1,6 +1,14 @@
 use lazy_static::lazy_static;
-use std::path::{Path, PathBuf};
+
+use std::error::Error;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+    time::Duration,
+};
 use which::which;
+
+use crate::utils::{self, color::red};
 
 pub const INKSCAPE_DOWNLOAD_URL: &str = "https://inkscape.org/en/download/";
 
@@ -49,6 +57,56 @@ impl Inkscape {
                 supported_write_formats: &SUPPORTED_WRITE_FORMATS,
             }
         })
+    }
+
+    pub fn convert_file(
+        &self,
+        path: &Path,
+        output_path: &PathBuf,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        let mut child = Command::new(&self.path)
+            .arg(path)
+            .arg("--export-filename")
+            .arg(&output_path)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()?;
+
+        let dot_interval = Duration::from_secs(1);
+        let poll_interval = Duration::from_millis(50);
+        utils::wait_with_progress(&mut child, dot_interval, poll_interval)?;
+
+        let output = child.wait_with_output()?;
+
+        if !output.stdout.is_empty() {
+            println!(
+                "\nInkscape output: {}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+        }
+        if !output.stderr.is_empty() {
+            println!(
+                "\nInkscape error: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        let error = String::from_utf8_lossy(&output.stderr);
+        if error.contains("extension not found")
+            || error.contains("unknown extension")
+            || error.contains("Could not detect file format")
+        {
+            let msg = format!(
+                "ink/stitch extension not installed or not working properly. Please download and install from {}",
+                INKSTITCH_INSTALL_URL
+            );
+            return Err(msg.into());
+        } else if !output.status.success() {
+            println!("{}", red(&format!("Error converting file: {}", error)));
+            return Err("Inkscape conversion failed".into());
+        }
+
+        Ok(output_path.to_path_buf())
     }
 
     fn find_path() -> Option<PathBuf> {
