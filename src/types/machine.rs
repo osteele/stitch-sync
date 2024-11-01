@@ -116,11 +116,7 @@ impl Machine {
                 println!("Did you mean:");
                 let names: Vec<String> = similar_machines.iter().map(|m| m.name.clone()).collect();
                 let index = prompt_from_list(&names);
-                if let Some(index) = index {
-                    Some(similar_machines[index].clone())
-                } else {
-                    None
-                }
+                index.map(|index| similar_machines[index].clone())
             }
         }
     }

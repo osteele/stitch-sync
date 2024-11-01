@@ -20,7 +20,7 @@ pub fn prompt_input(prompt: &str) -> String {
     input.trim().to_string()
 }
 
-pub fn prompt_from_list(list: &Vec<String>) -> Option<usize> {
+pub fn prompt_from_list(list: &[String]) -> Option<usize> {
     for (i, machine) in list.iter().enumerate() {
         println!("  {}. {}", i + 1, machine);
     }

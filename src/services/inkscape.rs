@@ -67,7 +67,7 @@ impl Inkscape {
         let mut child = Command::new(&self.path)
             .arg(path)
             .arg("--export-filename")
-            .arg(&output_path)
+            .arg(output_path)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()?;

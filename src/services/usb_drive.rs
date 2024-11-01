@@ -289,7 +289,6 @@ pub fn unmount_usb_volume() {
     match drives.len() {
         0 => {
             println!("No USB drives found.");
-            return;
         }
         1 => {
             println!("Ejecting USB drive: {}", drives[0].name);

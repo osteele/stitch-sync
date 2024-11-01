@@ -13,7 +13,7 @@ pub struct FileFormat {
 lazy_static! {
     pub static ref FILE_FORMATS: Vec<FileFormat> = {
         let yaml_content = include_str!("./formats.yaml");
-        serde_yaml::from_str(&yaml_content).expect("Failed to parse formats.yaml")
+        serde_yaml::from_str(yaml_content).expect("Failed to parse formats.yaml")
     };
 }
 

@@ -1,4 +1,3 @@
-
 use std::path::{Path, PathBuf};
 
 pub fn sanitize_filename(path: &Path) -> PathBuf {
@@ -13,8 +12,6 @@ pub fn sanitize_filename(path: &Path) -> PathBuf {
         .map(|c| {
             if c.is_alphanumeric() {
                 c.to_ascii_lowercase()
-            } else if c == ' ' || c == '_' {
-                '-'
             } else {
                 '-'
             }

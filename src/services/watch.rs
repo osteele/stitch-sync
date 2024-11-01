@@ -2,7 +2,6 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
-use ctrlc;
 use notify::Event as NotifyEvent;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use scopeguard::defer;
@@ -121,7 +120,7 @@ pub fn watch_directory(
     }
     let quit_msg = format!(
         "Press 'q' to quit{}",
-        if UsbDrive::find_usb_drives().len() > 0 {
+        if !UsbDrive::find_usb_drives().is_empty() {
             ", 'u' to unmount USB volume"
         } else {
             ""

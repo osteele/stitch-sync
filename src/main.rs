@@ -175,7 +175,7 @@ fn watch_command(
     let machine_name = machine_name.or(config.machine);
     let machine = machine_name
         .as_ref()
-        .and_then(|m| Machine::interactive_find_by_name(&m));
+        .and_then(|m| Machine::interactive_find_by_name(m));
     if machine_name.is_some() && machine.is_none() {
         println!("Machine '{}' not found", machine_name.unwrap());
         return Ok(());
@@ -183,10 +183,9 @@ fn watch_command(
 
     let copy_target_path = machine
         .as_ref()
-        .map(|m| m.usb_path.as_deref())
-        .flatten()
+        .and_then(|m| m.usb_path.as_deref())
         .unwrap_or("");
-    let copy_target_dir = find_usb_containing_path(&copy_target_path);
+    let copy_target_dir = find_usb_containing_path(copy_target_path);
 
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
