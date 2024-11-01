@@ -130,10 +130,15 @@ Pfaff Creative 4 (formats: vp3)
      - Copies converted and/or compatible files there
 3. Press 'q' to quit the program
 
+### Basic Usage
+
+```bash
+stitch-sync watch
+```
+
 ### Examples
 
 ```bash
-# Basic usage - DST to JEF conversion only
 stitch-sync watch
 
 # Watch for Brother PE800-compatible files
@@ -207,10 +212,6 @@ Make sure Inkscape is installed and accessible. Download from:
 2. Check that ink/stitch is properly installed
 3. Try converting the file manually in Inkscape to verify it works
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -226,3 +227,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 [inkscape-win]: https://inkscape.org/release/1.4/windows/
 [inkscape-linux]: https://inkscape.org/release/1.4/linux/
 [inkstitch-install]: https://inkstitch.org/docs/install/
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

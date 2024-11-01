@@ -59,8 +59,6 @@ pub fn watch(
         return;
     }
 
-    println!("Watching directory: {}", watch_dir.display());
-
     let (fs_tx, rx) = channel();
 
     // Create watcher with simplified event sending

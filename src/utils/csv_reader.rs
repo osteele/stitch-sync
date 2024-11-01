@@ -56,11 +56,13 @@ impl<'a> CsvRecord<'a> {
     }
 
     pub fn get_vec(&self, column_name: &str, separator: char) -> Option<Vec<String>> {
-        self.get(column_name).map(|value| {
-            value
-                .split(separator)
-                .map(|s| s.trim().to_string())
-                .collect()
-        })
+        self.get(column_name)
+            .filter(|value| !value.is_empty())
+            .map(|value| {
+                value
+                    .split(separator)
+                    .map(|s| s.trim().to_string())
+                    .collect()
+            })
     }
 }

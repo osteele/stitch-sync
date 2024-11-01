@@ -117,8 +117,11 @@ fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
     };
 
     for machine in machines {
-        println!("{} ({})", machine.name, machine.formats.join(", "));
         if verbose {
+            println!("{}", machine.name);
+            if !machine.synonyms.is_empty() {
+                println!("  Synonyms: {}", machine.synonyms.join(", "));
+            }
             if let Some(notes) = &machine.notes {
                 println!("  Note: {}", notes);
             }
@@ -126,8 +129,10 @@ fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
                 println!("  Design size: {}", design_size);
             }
             if let Some(usb_path) = &machine.usb_path {
-                println!("  USB path: USB Drive:/{:?}", usb_path);
+                println!("  USB path: {}", usb_path);
             }
+        } else {
+            println!("{} ({})", machine.name, machine.formats.join(", "));
         }
     }
     Ok(())
@@ -151,7 +156,7 @@ fn watch_command(
         services::open_browser(inkscape::INKSCAPE_DOWNLOAD_URL);
         return Ok(());
     }
-    if !inkscape.unwrap().has_inkstitch {
+    if !inkscape.as_ref().unwrap().has_inkstitch {
         println!(
             "{}",
             red(&format!(
@@ -197,6 +202,24 @@ fn watch_command(
             (vec![preferred.clone()], preferred)
         }
     };
+
+    println!("Watching directory: {}", watch_dir.display());
+    if let Some(machine) = machine {
+        println!("Machine: {}", machine.name);
+    }
+    // let mut watch_formats = Vec::new();
+    // watch_formats.extend(
+    //     inkscape
+    //         .unwrap()
+    //         .supported_read_formats
+    //         .iter()
+    //         .map(|f| f.to_string()),
+    // );
+    // watch_formats.extend(accepted_formats.clone());
+    // watch_formats.sort();
+    // watch_formats.dedup();
+    // println!("Watching for formats: {}", watch_formats.join(", "));
+
     services::watch_dir(
         watch_dir,
         copy_target_dir,

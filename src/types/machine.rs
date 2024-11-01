@@ -5,6 +5,7 @@ use crate::utils::CsvReader;
 #[derive(Debug, Clone)]
 pub struct Machine {
     pub name: String,
+    pub synonyms: Vec<String>,
     pub formats: Vec<String>,
     pub usb_path: Option<String>,
     pub notes: Option<String>,
@@ -14,6 +15,7 @@ pub struct Machine {
 impl Machine {
     pub fn new(
         name: String,
+        synonyms: Vec<String>,
         formats: Vec<String>,
         usb_path: Option<String>,
         notes: Option<String>,
@@ -21,17 +23,18 @@ impl Machine {
     ) -> Self {
         Self {
             name,
+            synonyms,
             formats,
-            usb_path,
-            notes,
-            design_size,
+            usb_path: usb_path.filter(|s| !s.is_empty()),
+            notes: notes.filter(|s| !s.is_empty()),
+            design_size: design_size.filter(|s| !s.is_empty()),
         }
     }
 
     pub fn find_by_name(name: &str) -> Option<Machine> {
         MACHINES
             .iter()
-            .find(|machine| machine.name == name)
+            .find(|machine| machine.name == name || machine.synonyms.contains(&name.to_string()))
             .cloned()
     }
 }
@@ -47,6 +50,7 @@ lazy_static! {
                 let record = result.unwrap();
                 Machine::new(
                     record.get("Machine Name").unwrap().to_string(),
+                    record.get_vec("Synonyms", ',').unwrap_or_default(),
                     record.get_vec("File Formats", ',').unwrap(),
                     record.get("USB Path").map(ToString::to_string),
                     record.get("Notes").map(ToString::to_string),
