@@ -175,7 +175,7 @@ fn watch_command(
     let machine_name = machine_name.or(config.machine);
     let machine = machine_name
         .as_ref()
-        .and_then(|m| Machine::find_by_name(&m));
+        .and_then(|m| Machine::interactive_find_by_name(&m));
     if machine_name.is_some() && machine.is_none() {
         println!("Machine '{}' not found", machine_name.unwrap());
         return Ok(());
@@ -244,18 +244,23 @@ fn main() -> Result<()> {
         } => watch_command(dir, output_format, machine)?,
         Commands::Machine { command } => match command {
             MachineCommand::List { format, verbose } => list_machines_command(format, verbose)?,
-            MachineCommand::Info { name } => match Machine::find_by_name(&name) {
+            MachineCommand::Info { name } => match Machine::interactive_find_by_name(&name) {
                 Some(info) => {
                     println!("{}", info.name);
-                    println!("  Formats: {}", info.formats.join(", "));
                     if let Some(notes) = &info.notes {
                         println!("  Notes: {}", notes);
+                    }
+                    if !info.synonyms.is_empty() {
+                        println!("  Synonyms: {}", info.synonyms.join(", "));
+                    }
+                    if !info.formats.is_empty() {
+                        println!("  Formats: {}", info.formats.join(", "));
+                    }
+                    if let Some(design_size) = &info.design_size {
+                        println!("  Design size: {}", design_size);
                     }
                     if let Some(path) = &info.usb_path {
                         println!("  USB path: {}", path);
-                    }
-                    if let Some(notes) = &info.notes {
-                        println!("  Notes: {}", notes);
                     }
                 }
                 None => println!("Machine '{}' not found", name),
@@ -293,7 +298,7 @@ fn main() -> Result<()> {
                         println!("Watch directory set");
                     }
                     ConfigKey::Machine => {
-                        if let Some(machine) = Machine::find_by_name(&value) {
+                        if let Some(machine) = Machine::interactive_find_by_name(&value) {
                             config_manager.set_machine(machine.name)?;
                             println!("Default machine set");
                         } else {
