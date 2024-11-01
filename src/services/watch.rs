@@ -5,27 +5,74 @@ use crossterm::{
 use notify::Event as NotifyEvent;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use scopeguard::defer;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::channel;
-use std::sync::Arc;
 
+use std::collections::HashMap;
 use std::io::{self};
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
+use std::sync::Arc;
+use std::time::SystemTime;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    thread::sleep,
+    time::Duration,
+};
 
+use crate::services::usb_drive::unmount_usb_volume;
 use crate::services::{
-    file_conversion::handle_file_creation,
+    file_conversion::handle_file_detection,
     inkscape::{self, Inkscape},
     usb_drive::UsbDrive,
 };
 use crate::utils::WATCH_POLL_INTERVAL;
 
-use crate::services::usb_drive::unmount_usb_volume;
-
 #[derive(Debug)]
 pub enum WatcherEvent {
     File(notify::Result<NotifyEvent>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct FileMetadata {
+    modified: SystemTime,
+    size: u64,
+}
+
+struct FileCache {
+    cache: HashMap<PathBuf, FileMetadata>,
+}
+
+impl FileCache {
+    fn new() -> Self {
+        Self {
+            cache: HashMap::new(),
+        }
+    }
+
+    fn filter_new_files<'a>(
+        &'a mut self,
+        paths: &'a [PathBuf],
+    ) -> impl Iterator<Item = &'a PathBuf> {
+        paths.iter().filter(|&path| {
+            if let Ok(metadata) = std::fs::metadata(path) {
+                let current_metadata = FileMetadata {
+                    modified: metadata.modified().unwrap_or(SystemTime::now()),
+                    size: metadata.len(),
+                };
+
+                match self.cache.get(path) {
+                    Some(cached_metadata) if cached_metadata == &current_metadata => false,
+                    _ => {
+                        self.cache.insert(path.clone(), current_metadata);
+                        true
+                    }
+                }
+            } else {
+                false
+            }
+        })
+    }
 }
 
 pub fn watch(
@@ -104,6 +151,8 @@ pub fn watch_directory(
     accepted_formats: &[&str],
     preferred_format: &str,
 ) {
+    let mut file_cache = FileCache::new();
+
     let quit_msg = format!(
         "Press 'q' to quit{}",
         if !UsbDrive::find_usb_drives().is_empty() {
@@ -125,17 +174,25 @@ pub fn watch_directory(
             disable_raw_mode().unwrap();
             match event {
                 WatcherEvent::File(Ok(event)) => {
-                    if let notify::EventKind::Create(_) = event.kind {
-                        for path in event.paths {
-                            if let Err(e) = handle_file_creation(
-                                &path,
-                                &inkscape,
-                                usb_target_path,
-                                accepted_formats,
-                                preferred_format,
-                            ) {
-                                eprintln!("Error handling file creation: {}", e);
-                            }
+                    let paths = match event.kind {
+                        notify::EventKind::Create(_) => event.paths,
+                        notify::EventKind::Modify(_) => {
+                            sleep(Duration::from_millis(150)); // give the file time to settle
+                            event.paths
+                        }
+                        _ => vec![],
+                    };
+
+                    // Use the new filter_new_files method
+                    for path in file_cache.filter_new_files(&paths) {
+                        if let Err(e) = handle_file_detection(
+                            path,
+                            &inkscape,
+                            usb_target_path,
+                            accepted_formats,
+                            preferred_format,
+                        ) {
+                            eprintln!("Error handling file creation: {}", e);
                         }
                     }
                 }

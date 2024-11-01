@@ -42,15 +42,14 @@ fn copy_file_to_usb_drives(source_path: &Path, usb_rel_path: &str) -> Result<(),
     match (drives.len(), target_paths.len()) {
         (0, _) => println!("New file detected: {}", source_path.display()),
         (_, 0) => println!(
-            "USB drive{} found, but none contains target path {}. The new file {} will not be copied.",
+            "New file {} will not be copied. USB drive{} found, but none contains target path {}.",
             if drives.len() > 1 { "s" } else { "" },
             usb_rel_path,
             source_path.display()
         ),
         (_, 1) => (),
         (_, _) => println!(
-            "Multiple USB drives found; copying {} to {}...",
-            source_path.display(),
+            "Multiple USB drives found; selecting {}...",
             target_paths.first().unwrap().display()
         ),
     }
@@ -65,7 +64,7 @@ fn copy_file_to_usb_drives(source_path: &Path, usb_rel_path: &str) -> Result<(),
     Ok(())
 }
 
-pub fn handle_file_creation(
+pub fn handle_file_detection(
     path: &Path,
     inkscape: &Inkscape,
     usb_target_path: &Option<&str>,
