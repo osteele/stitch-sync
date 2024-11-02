@@ -1,6 +1,8 @@
 use anyhow::Result;
+
 use std::path::PathBuf;
 
+use crate::commands;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::config::ConfigManager;
 use crate::services;
@@ -8,10 +10,153 @@ use crate::services::find_usb_containing_path;
 use crate::services::inkscape;
 use crate::services::Inkscape;
 use crate::types::Machine;
+use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
+use crate::utils;
 use crate::utils::color::red;
+use crate::Commands;
+use crate::ConfigCommand;
+use crate::ConfigKey;
+use crate::MachineCommand;
 
-pub fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
+impl Commands {
+    pub fn execute(self) -> Result<()> {
+        match self {
+            Commands::Watch {
+                dir,
+                output_format,
+                machine,
+            } => commands::watch_command(dir, output_format, machine),
+            Commands::Machine { command } => command.execute(),
+            Commands::Machines { format, verbose } => {
+                commands::list_machines_command(format, verbose)
+            }
+            Commands::Formats => Self::list_formats(),
+            Commands::Config { command } => command.execute(),
+        }
+    }
+
+    fn list_formats() -> Result<()> {
+        let mut formats = FILE_FORMATS.to_vec();
+        formats.sort_by_key(|format| format.extension.to_owned());
+
+        for format in formats {
+            print!("{}: {}", format.extension, format.manufacturer);
+            if let Some(notes) = format.notes {
+                print!(" -- {}", notes);
+            }
+            println!();
+        }
+        Ok(())
+    }
+}
+
+impl ConfigCommand {
+    pub fn execute(self) -> Result<()> {
+        let config_manager = ConfigManager::new()?;
+        match self {
+            ConfigCommand::Show => {
+                let config = config_manager.load()?;
+                if let Some(dir) = &config.watch_dir {
+                    println!("Watch directory: {}", dir.display());
+                }
+                if let Some(machine) = &config.machine {
+                    println!("Default machine: {}", machine);
+                }
+                Ok(())
+            }
+            ConfigCommand::Set { key, value } => match key {
+                ConfigKey::WatchDir => {
+                    let path = PathBuf::from(value.expect("Watch directory path is required"));
+                    config_manager.set_watch_dir(path)?;
+                    println!("Watch directory set");
+                    Ok(())
+                }
+                ConfigKey::Machine => {
+                    let machine = Self::select_machine(value);
+                    if let Some(machine) = machine {
+                        config_manager.set_machine(machine.name)?;
+                        println!("Default machine set");
+                    } else {
+                        println!("No machine selected");
+                    }
+                    Ok(())
+                }
+            },
+            ConfigCommand::Clear { key } => match key {
+                ConfigKey::WatchDir => {
+                    config_manager.clear_watch_dir()?;
+                    println!("Watch directory cleared");
+                    Ok(())
+                }
+                ConfigKey::Machine => {
+                    config_manager.clear_machine()?;
+                    println!("Default machine cleared");
+                    Ok(())
+                }
+            },
+        }
+    }
+
+    pub fn select_machine(value: Option<String>) -> Option<Machine> {
+        if let Some(name) = value {
+            Machine::interactive_find_by_name(&name)
+        } else {
+            // Show list of all machines and let user choose
+            println!("Select your embroidery machine:");
+            let mut names: Vec<String> = MACHINES
+                .iter()
+                .flat_map(|m| {
+                    let mut synonyms = m.synonyms.clone();
+                    synonyms.push(m.name.clone());
+                    synonyms
+                })
+                .filter(|n| !n.is_empty())
+                .collect::<Vec<String>>();
+            names.sort();
+            let index = utils::prompt_from_list(&names);
+            index.map(|i| MACHINES[i].clone())
+        }
+    }
+}
+
+impl MachineCommand {
+    pub fn execute(self) -> Result<()> {
+        match self {
+            MachineCommand::List { format, verbose } => {
+                commands::list_machines_command(format, verbose)
+            }
+            MachineCommand::Info { name } => Self::show_info(name),
+        }
+    }
+
+    fn show_info(name: String) -> Result<()> {
+        match Machine::interactive_find_by_name(&name) {
+            Some(info) => {
+                println!("{}", info.name);
+                if let Some(notes) = &info.notes {
+                    println!("  Notes: {}", notes);
+                }
+                if !info.synonyms.is_empty() {
+                    println!("  Synonyms: {}", info.synonyms.join(", "));
+                }
+                if !info.formats.is_empty() {
+                    println!("  Formats: {}", info.formats.join(", "));
+                }
+                if let Some(design_size) = &info.design_size {
+                    println!("  Design size: {}", design_size);
+                }
+                if let Some(path) = &info.usb_path {
+                    println!("  USB path: {}", path);
+                }
+            }
+            None => println!("Machine '{}' not found", name),
+        }
+        Ok(())
+    }
+}
+
+fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
     let machines = if let Some(format) = format {
         MACHINES
             .iter()
@@ -43,7 +188,7 @@ pub fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()
     Ok(())
 }
 
-pub fn watch_command(
+fn watch_command(
     watch_dir: Option<PathBuf>,
     output_format: Option<String>,
     machine_name: Option<String>,
