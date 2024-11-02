@@ -42,10 +42,10 @@ fn copy_file_to_usb_drives(source_path: &Path, usb_rel_path: &str) -> Result<(),
     match (drives.len(), target_paths.len()) {
         (0, _) => println!("New file detected: {}", source_path.display()),
         (_, 0) => println!(
-            "New file {} will not be copied. USB drive{} found, but none contains target path {}.",
+            "New file {} will not be copied. USB drive{} found, but none contains the required target path {}.",
+            source_path.display(),
             if drives.len() > 1 { "s" } else { "" },
             usb_rel_path,
-            source_path.display()
         ),
         (_, 1) => (),
         (_, _) => println!(

@@ -89,8 +89,12 @@ impl Machine {
 
         // Sort by similarity score in descending order
         matches.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
-
-        matches.into_iter().map(|(_, machine)| machine).collect()
+        // Return the top 20 matches
+        matches
+            .into_iter()
+            .map(|(_, machine)| machine)
+            .take(20)
+            .collect()
     }
 
     pub fn interactive_find_by_name(name: &str) -> Option<Machine> {

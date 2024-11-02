@@ -109,7 +109,8 @@ echo "Configuration (Optional):"
 echo "─────────────────────────"
 echo "  • Run 'stitch-sync config set machine' to set your embroidery machine"
 echo
-echo "  (Otherwise design files will be converted to DST format, and copied"
-echo "  to the root of the USB drive connected to your machine.)"
+echo "  This is necessary if your embroidery machine requires a different"
+echo "  format than the default (DST), or if it requires the output files"
+echo "  to be located in a specific directory on the USB drive."
 echo
 echo "  • Run 'stitch-sync list-machines' to see supported machines"

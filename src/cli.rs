@@ -3,6 +3,10 @@ use clap::ValueEnum;
 
 use std::path::PathBuf;
 
+use crate::types::Machine;
+use crate::types::MACHINES;
+use crate::utils;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None, after_help = "\n\
 \x1B[1;4mQuick Start Guide:\x1B[0m
@@ -87,6 +91,29 @@ pub enum ConfigCommand {
         #[arg(value_enum)]
         key: ConfigKey,
     },
+}
+
+impl ConfigCommand {
+    pub fn select_machine(value: Option<String>) -> Option<Machine> {
+        if let Some(name) = value {
+            Machine::interactive_find_by_name(&name)
+        } else {
+            // Show list of all machines and let user choose
+            println!("Select your embroidery machine:");
+            let mut names: Vec<String> = MACHINES
+                .iter()
+                .flat_map(|m| {
+                    let mut synonyms = m.synonyms.clone();
+                    synonyms.push(m.name.clone());
+                    synonyms
+                })
+                .filter(|n| !n.is_empty())
+                .collect::<Vec<String>>();
+            names.sort();
+            let index = utils::prompt_from_list(&names);
+            index.map(|i| MACHINES[i].clone())
+        }
+    }
 }
 
 #[derive(Clone, ValueEnum)]

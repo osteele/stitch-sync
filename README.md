@@ -1,9 +1,12 @@
 # Stitch-sync
 [![Cross-Platform Test](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml/badge.svg)](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml)
 
-An automated embroidery file converter that watches for design files and prepares them for your embroidery machine.
+An automated embroidery file converter that watches for design files and
+prepares them for your embroidery machine.
 
-It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to a format supported by the specified embroidery machine, and copies design files to a connected USB drive.
+It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
+a format supported by the specified embroidery machine, and copies design files
+to a connected USB drive.
 
 ## Features
 - Automatically monitors directories for new embroidery design files
@@ -17,9 +20,7 @@ It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
 ## Prerequisites
 
 1. [Inkscape][Inkscape] must be installed on your system
-2. The [ink/stitch extension][inkstitch] must be installed in
-   Inkscape
-3. Rust and Cargo must be installed on your system
+2. The [ink/stitch extension][inkstitch] must be installed
 
 ## Installation
 
@@ -42,35 +43,40 @@ cd stitch-sync
 cargo install --path .
 ```
 
-## Usage
-
-Basic usage:
+## Basic Usage
 
 ```bash
 stitch-sync
 ```
 
-(This watches the configured directory, or falls back to the downloads directory if not configured.)
-
-Watch a specific directory:
-
+Set your embroidery machine
 ```bash
-stitch-sync watch --dir /path/to/directory
+stitch-sync config set machine
 ```
 
-Specify a target machine:
+This is necessary if your embroidery machine requires a different format than
+the default (DST), or if it requires the output files to be located in a
+specific directory on the USB drive.
+
+## Additonal Examples
+
+Specify a target machine for just the current session, and watch for new
+designs:
 
 ```bash
 stitch-sync watch --machine "Brother PE800"
 ```
 
-(This automatically handles format compatibility; see ./docs/format-selection.md
-for details.):
-
-Select a different output format:
+Watch a directory besides the default downloads directory:
 
 ```bash
-stitch-sync watch --output-format jef+
+stitch-sync watch --dir /path/to/directory
+```
+
+Select a different output format from the default (DST):
+
+```bash
+stitch-sync watch --output-format jef
 ```
 
 List all supported machines:
@@ -140,24 +146,6 @@ Pfaff Creative 4 (formats: vp3)
    - If a USB drive with an EMB/Embf directory is found:
      - Copies converted and/or compatible files there
 3. Press 'q' to quit the program
-
-### Basic Usage
-
-```bash
-stitch-sync watch
-```
-
-### Examples
-
-```bash
-stitch-sync watch
-
-# Watch for Brother PE800-compatible files
-stitch-sync watch --machine "Brother PE800"
-
-# Convert everything to JEF+
-stitch-sync watch --output-format jef+
-```
 
 ## Configuration
 
