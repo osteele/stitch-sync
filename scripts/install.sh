@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Check if curl is installed
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl is required but not installed."
+    echo "Please install curl and try again."
+    exit 1
+fi
+
 # Determine platform-specific variables
 case "$(uname -s)" in
     Darwin*)
@@ -14,7 +21,7 @@ case "$(uname -s)" in
         ;;
     MINGW*|MSYS*|CYGWIN*)
         PLATFORM="pc-windows-msvc"
-        INSTALL_DIR="/c/Windows/System32"
+        INSTALL_DIR="$HOME/AppData/Local/StitchSync/bin"
         EXE_NAME="stitch-sync.exe"
         ;;
     *)
@@ -23,9 +30,11 @@ case "$(uname -s)" in
         ;;
 esac
 
+REPO_WITH_OWNER="osteele/stitch-sync"
+
 # Get latest release info from GitHub API
 echo "Fetching latest release information..."
-RELEASE_INFO=$(curl -s "https://api.github.com/repos/osteele/stitchsync/releases/latest")
+RELEASE_INFO=$(curl -s "https://api.github.com/repos/${REPO_WITH_OWNER}/releases/latest")
 if [ $? -ne 0 ]; then
     echo "Failed to fetch release information"
     exit 1
@@ -40,7 +49,7 @@ fi
 
 echo "Latest version: $RELEASE_VERSION"
 ASSET_NAME="stitch-sync-x86_64-${PLATFORM}.tar.gz"
-DOWNLOAD_URL="https://github.com/osteele/stitchsync/releases/download/${RELEASE_VERSION}/${ASSET_NAME}"
+DOWNLOAD_URL="https://github.com/${REPO_WITH_OWNER}/releases/download/${RELEASE_VERSION}/${ASSET_NAME}"
 
 # Create temporary directory
 TMP_DIR=$(mktemp -d)
@@ -63,7 +72,7 @@ fi
 echo "Installing to ${INSTALL_DIR}..."
 if [ ! -d "$INSTALL_DIR" ]; then
     echo "Creating installation directory..."
-    sudo mkdir -p "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
 fi
 
 if ! mv "$EXE_NAME" "$INSTALL_DIR/"; then
@@ -76,9 +85,31 @@ fi
 cd - > /dev/null
 rm -rf "$TMP_DIR"
 
-echo "Successfully installed StitchSync ${RELEASE_VERSION} to ${INSTALL_DIR}/${EXE_NAME}"
+if [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]] || [[ "$(uname -s)" == CYGWIN* ]]; then
+    echo
+    echo "Important: To use stitch-sync from any terminal, add the following directory to your PATH:"
+    echo "$INSTALL_DIR"
+    echo
+fi
+
+# Print styled success message
 echo
-echo "Run 'stitch-sync --help' to get started"
-echo "Run 'stitch-sync config set machine' to set your embroidery machine"
-echo "Run 'stitch-sync list-machines' to see a list of supported machines"
-echo "Run 'stitch-sync watch' to start watching for new designs"
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                   StitchSync Installation                      ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo
+echo "✓ Successfully installed StitchSync ${RELEASE_VERSION} to ${INSTALL_DIR}/${EXE_NAME}"
+echo
+echo "Getting Started:"
+echo "───────────────"
+echo "  • Run 'stitch-sync --help' to see all available commands"
+echo "  • Run 'stitch-sync watch' to start watching for new designs"
+echo
+echo "Configuration (Optional):"
+echo "─────────────────────────"
+echo "  • Run 'stitch-sync config set machine' to set your embroidery machine"
+echo
+echo "  (Otherwise design files will be converted to DST format, and copied"
+echo "  to the root of the USB drive connected to your machine.)"
+echo
+echo "  • Run 'stitch-sync list-machines' to see supported machines"
