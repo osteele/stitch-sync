@@ -268,10 +268,24 @@ fn watch_command(
         preferred_format
     };
 
-    println!("Watching directory: {}", watch_dir.display());
     if let Some(ref machine) = machine {
         println!("Machine: {}", machine.name);
     }
+    println!("Watching directory: {}", watch_dir.display());
+    match accepted_formats.len() {
+        1 => println!("Files will be converted to {} format", accepted_formats[0]),
+        _ => println!(
+            "Files will be converted to one of the following formats: {}",
+            accepted_formats.join(", ")
+        ),
+    }
+    println!(
+        "Files will be copied to {} on a mounted USB drive",
+        machine
+            .as_ref()
+            .and_then(|m| m.usb_path.as_deref())
+            .unwrap_or("the root directory")
+    );
     // let mut watch_formats = Vec::new();
     // watch_formats.extend(
     //     inkscape
