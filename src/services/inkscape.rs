@@ -8,7 +8,8 @@ use std::{
 };
 use which::which;
 
-use crate::utils::{self, color::red};
+use crate::print_error;
+use crate::utils;
 
 pub const INKSCAPE_DOWNLOAD_URL: &str = "https://inkscape.org/en/download/";
 
@@ -102,7 +103,7 @@ impl Inkscape {
             );
             return Err(msg.into());
         } else if !output.status.success() {
-            println!("{}", red(&format!("Error converting file: {}", error)));
+            print_error!("Error converting file: {}", error);
             return Err("Inkscape conversion failed".into());
         }
 

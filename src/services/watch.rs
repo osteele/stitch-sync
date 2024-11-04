@@ -28,6 +28,8 @@ use crate::services::{
 };
 use crate::utils::WATCH_POLL_INTERVAL;
 
+use colored::*;
+
 #[derive(Debug)]
 pub enum WatcherEvent {
     File(notify::Result<NotifyEvent>),
@@ -154,12 +156,18 @@ pub fn watch_directory(
     let mut file_cache = FileCache::new();
 
     let quit_msg = format!(
-        "Press 'q' to quit{}",
-        if !UsbDrive::find_usb_drives().is_empty() {
-            ", 'u' to unmount USB volume"
-        } else {
-            ""
-        }
+        "{} {}{}",
+        "Press".blue(),
+        "'q'".yellow().bold(),
+        format!(
+            " to quit{}",
+            if !UsbDrive::find_usb_drives().is_empty() {
+                format!(", {} to unmount USB volume", "'u'".yellow().bold())
+            } else {
+                "".to_string()
+            }
+        )
+        .blue()
     );
     println!("{}", quit_msg);
 

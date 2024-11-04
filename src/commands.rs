@@ -1,10 +1,12 @@
 use anyhow::Result;
+use colored::*;
 
 use std::path::PathBuf;
 
 use crate::commands;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::config::ConfigManager;
+use crate::print_error;
 use crate::services;
 use crate::services::find_usb_containing_path;
 use crate::services::inkscape;
@@ -13,7 +15,6 @@ use crate::types::Machine;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::utils;
-use crate::utils::color::red;
 use crate::Commands;
 use crate::ConfigCommand;
 use crate::ConfigKey;
@@ -168,21 +169,21 @@ fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
 
     for machine in machines {
         if verbose {
-            println!("{}", machine.name);
+            println!("{}", machine.name.bold());
             if !machine.synonyms.is_empty() {
-                println!("  Synonyms: {}", machine.synonyms.join(", "));
+                println!("  {} {}", "Synonyms:".blue(), machine.synonyms.join(", "));
             }
             if let Some(notes) = &machine.notes {
-                println!("  Note: {}", notes);
+                println!("  {}: {}", "Note".blue(), notes);
             }
             if let Some(design_size) = &machine.design_size {
-                println!("  Design size: {}", design_size);
+                println!("  {}: {}", "Design size".blue(), design_size);
             }
             if let Some(usb_path) = &machine.usb_path {
-                println!("  USB path: {}", usb_path);
+                println!("  {}: {}", "USB path".blue(), usb_path);
             }
         } else {
-            println!("{} ({})", machine.name, machine.formats.join(", "));
+            println!("{} ({})", machine.name.bold(), machine.formats.join(", "));
         }
     }
     Ok(())
@@ -207,12 +208,9 @@ fn watch_command(
         return Ok(());
     }
     if !inkscape.as_ref().unwrap().has_inkstitch {
-        println!(
-            "{}",
-            red(&format!(
-                "Warning: ink/stitch extension not found. Please install from {}",
-                inkscape::INKSTITCH_INSTALL_URL
-            ))
+        print_error!(
+            "Warning: ink/stitch extension not found. Please install from {}",
+            inkscape::INKSTITCH_INSTALL_URL
         );
     }
 
@@ -269,22 +267,34 @@ fn watch_command(
     };
 
     if let Some(ref machine) = machine {
-        println!("Machine: {}", machine.name);
+        println!("{} {}", "Machine:".blue(), machine.name.bold());
     }
-    println!("Watching directory: {}", watch_dir.display());
+    println!(
+        "{} {}",
+        "Watching directory:".blue(),
+        watch_dir.display().to_string().bold()
+    );
     match accepted_formats.len() {
-        1 => println!("Files will be converted to {} format", accepted_formats[0]),
+        1 => println!(
+            "{} {}",
+            "Files will be converted to".blue(),
+            accepted_formats[0].bold()
+        ),
         _ => println!(
-            "Files will be converted to one of the following formats: {}",
-            accepted_formats.join(", ")
+            "{} {}",
+            "Files will be converted to one of the following formats:".blue(),
+            accepted_formats.join(", ").bold()
         ),
     }
     println!(
-        "Files will be copied to {} on a mounted USB drive",
+        "{} {} {}",
+        "Files will be copied to".blue(),
         machine
             .as_ref()
             .and_then(|m| m.usb_path.as_deref())
             .unwrap_or("the root directory")
+            .bold(),
+        "on a mounted USB drive".blue()
     );
     // let mut watch_formats = Vec::new();
     // watch_formats.extend(

@@ -1,8 +1,9 @@
+use colored::*;
 use std::io::{stdout, Write};
 
 pub fn prompt_yes_no(default: Option<bool>) -> bool {
     loop {
-        let input = prompt_input("(y/n) ");
+        let input = prompt_input(&"(y/n) ".cyan());
         match input.to_lowercase().trim() {
             "y" => return true,
             "n" => return false,
@@ -22,10 +23,10 @@ pub fn prompt_input(prompt: &str) -> String {
 
 pub fn prompt_from_list(list: &[String]) -> Option<usize> {
     for (i, machine) in list.iter().enumerate() {
-        println!("  {}. {}", i + 1, machine);
+        println!("  {}. {}", (i + 1).to_string().cyan(), machine);
     }
     loop {
-        let input = prompt_input("Enter number, or 'q' to cancel: ");
+        let input = prompt_input(&"Enter a number, or 'q' to cancel: ".cyan());
         if input.to_lowercase().trim() == "q" {
             return None;
         }
@@ -33,6 +34,9 @@ pub fn prompt_from_list(list: &[String]) -> Option<usize> {
         if index > 0 && index <= list.len() {
             return Some(index - 1);
         }
-        println!("Please enter a number between 1 and {}", list.len());
+        println!(
+            "{}",
+            format!("Please enter a number between 1 and {}", list.len()).yellow()
+        );
     }
 }
