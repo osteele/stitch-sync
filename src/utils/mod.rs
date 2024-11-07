@@ -1,4 +1,6 @@
-pub mod color;
+pub mod colors;
+pub mod messages;
+pub mod version;
 
 mod csv_reader;
 mod files;

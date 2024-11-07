@@ -58,6 +58,12 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommand,
     },
+    /// Update stitch-sync to the latest version
+    Update {
+        /// Check for updates but don't install them
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Parser)]

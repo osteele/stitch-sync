@@ -1,12 +1,17 @@
 use anyhow::Result;
 use colored::*;
+use reqwest;
 
+use std::env;
+use std::fs;
 use std::path::PathBuf;
+use std::process;
 
 use crate::commands;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::config::ConfigManager;
 use crate::print_error;
+use crate::print_notice;
 use crate::services;
 use crate::services::find_usb_containing_path;
 use crate::services::inkscape;
@@ -15,6 +20,7 @@ use crate::types::Machine;
 use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::utils;
+use crate::utils::version;
 use crate::Commands;
 use crate::ConfigCommand;
 use crate::ConfigKey;
@@ -49,6 +55,7 @@ impl Commands {
             }
             Commands::Formats => Self::list_formats(),
             Commands::Config { command } => command.execute(),
+            Commands::Update { dry_run } => commands::update_command(dry_run),
         }
     }
 
@@ -209,6 +216,14 @@ fn watch_command(
     output_format: Option<String>,
     machine_name: Option<String>,
 ) -> Result<()> {
+    // Check for updates, but use cache
+    if let Ok(Some(latest_version)) = version::get_latest_version(false) {
+        print_notice!(
+            "A new version of stitch-sync {} is available. Run 'stitch-sync update' to upgrade.",
+            latest_version
+        );
+    }
+
     let config_manager = ConfigManager::new()?;
     let config = config_manager.load()?;
 
@@ -333,5 +348,78 @@ fn watch_command(
             .collect::<Vec<_>>(),
         &preferred_format,
     );
+    Ok(())
+}
+
+fn update_command(dry_run: bool) -> Result<()> {
+    let current_version = env!("CARGO_PKG_VERSION");
+    println!("Current version: {}", current_version);
+
+    // Force fresh check for updates
+    println!("Checking for updates...");
+    let latest_version = match version::get_latest_version(true)? {
+        Some(version) => version,
+        None => {
+            println!("You're already running the latest version!");
+            return Ok(());
+        }
+    };
+
+    println!("New version available: {}", latest_version);
+
+    // Get platform-specific info
+    let (platform, exe_name) = match std::env::consts::OS {
+        "macos" => ("apple-darwin", "stitch-sync"),
+        "linux" => ("unknown-linux-gnu", "stitch-sync"),
+        "windows" => ("pc-windows-msvc", "stitch-sync.exe"),
+        _ => return Err(anyhow::anyhow!("Unsupported platform")),
+    };
+
+    // Create temporary directory that will be cleaned up when we're done
+    let tmp_dir = tempfile::tempdir()?;
+    let _tmp_guard = scopeguard::guard(tmp_dir.path().to_path_buf(), |p| {
+        let _ = fs::remove_dir_all(p);
+    });
+
+    // Download new version
+    println!("Downloading new version...");
+    let asset_name = format!("stitch-sync-x86_64-{}.tar.gz", platform);
+    let download_url = format!(
+        "https://github.com/osteele/stitch-sync/releases/download/v{}/{}",
+        latest_version, asset_name
+    );
+
+    let archive_path = tmp_dir.path().join(&asset_name);
+    let client = reqwest::blocking::Client::new();
+    let response = client.get(&download_url).send()?;
+    let content = response.bytes()?;
+    fs::write(&archive_path, content)?;
+
+    // Extract archive
+    println!("Extracting update...");
+    let output = process::Command::new("tar")
+        .arg("xzf")
+        .arg(&archive_path)
+        .current_dir(tmp_dir.path())
+        .output()?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Failed to extract archive"));
+    }
+
+    // Get current executable path
+    let current_exe = env::current_exe()?;
+
+    if dry_run {
+        println!("Dry run - not installing update");
+        return Ok(());
+    }
+
+    // Replace current executable
+    println!("Installing update...");
+    let new_exe = tmp_dir.path().join(exe_name);
+    fs::rename(&new_exe, &current_exe)?;
+
+    println!("Successfully updated to version {}", latest_version);
     Ok(())
 }
