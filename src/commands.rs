@@ -219,8 +219,13 @@ fn watch_command(
     // Check for updates, but use cache
     if let Ok(Some(latest_version)) = version::get_latest_version(false) {
         print_notice!(
-            "A new version of stitch-sync {} is available. Run 'stitch-sync update' to upgrade.",
-            latest_version
+            "{} {} is available.",
+            "A new version of stitch-sync",
+            format!("({})", latest_version).dim()
+        );
+        println!(
+            " → Run '{}' to upgrade.",
+            "stitch-sync update".bright_green()
         );
     }
 
@@ -297,47 +302,36 @@ fn watch_command(
     };
 
     if let Some(ref machine) = machine {
-        println!("{} {}", "Machine:".blue(), machine.name.bold());
+        println!("{} {}", "🤖 Machine:".bright_blue(), machine.name.bold());
     }
     println!(
         "{} {}",
-        "Watching directory:".blue(),
+        "Directory:".bright_blue(),
         watch_dir.display().to_string().bold()
     );
     match accepted_formats.len() {
         1 => println!(
-            "{} {}",
-            "Files will be converted to".blue(),
+            " {} {}",
+            "→ Files will be converted to".bright_blue(),
             accepted_formats[0].bold()
         ),
         _ => println!(
-            "{} {}",
-            "Files will be converted to one of the following formats:".blue(),
+            " {} {}",
+            "→ Files will be converted to one of:".bright_blue(),
             accepted_formats.join(", ").bold()
         ),
     }
     println!(
-        "{} {} {}",
-        "Files will be copied to".blue(),
+        " {} {} {}",
+        "→ Files will be copied to".bright_blue(),
         machine
             .as_ref()
             .and_then(|m| m.usb_path.as_deref())
             .unwrap_or("the root directory")
             .bold(),
-        "on a mounted USB drive".blue()
+        "on a mounted USB drive".bright_blue()
     );
-    // let mut watch_formats = Vec::new();
-    // watch_formats.extend(
-    //     inkscape
-    //         .unwrap()
-    //         .supported_read_formats
-    //         .iter()
-    //         .map(|f| f.to_string()),
-    // );
-    // watch_formats.extend(accepted_formats.clone());
-    // watch_formats.sort();
-    // watch_formats.dedup();
-    // println!("Watching for formats: {}", watch_formats.join(", "));
+    println!("\n{}", "Press 'q' to quit".bright_black().italic());
 
     services::watch_dir(
         &watch_dir,

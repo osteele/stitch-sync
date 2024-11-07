@@ -19,11 +19,11 @@ macro_rules! print_notice {
         use crossterm::style::Stylize;
         use crate::utils::colors::{get_contrasting_color, MessageType};
         let msg = format!($fmt, $($arg)*);
-        println!("{} 📝", msg.with(get_contrasting_color(MessageType::Success)))
+        println!("{}", msg.with(get_contrasting_color(MessageType::Info)))
     }};
     ($fmt:literal) => {{
         use crossterm::style::Stylize;
         use crate::utils::colors::{get_contrasting_color, MessageType};
-        println!("{} 📝", $fmt.with(get_contrasting_color(MessageType::Success)))
+        println!("{}", $fmt.with(get_contrasting_color(MessageType::Info)))
     }};
 }

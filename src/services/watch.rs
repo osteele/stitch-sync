@@ -7,7 +7,7 @@ use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use scopeguard::defer;
 
 use std::collections::HashMap;
-use std::io::{self};
+use std::io::{self, Write};
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
@@ -24,11 +24,14 @@ use crate::services::usb_drive::unmount_usb_volume;
 use crate::services::{
     file_conversion::handle_file_detection,
     inkscape::{self, Inkscape},
-    usb_drive::UsbDrive,
 };
 use crate::utils::WATCH_POLL_INTERVAL;
 
-use colored::*;
+// Option 1: Scanning folder animation
+const CURSOR_FRAMES: &[&str] = &[
+    "📁 ⠋", "📁 ⠙", "📁 ⠹", "📁 ⠸", "📁 ⠼", "📁 ⠴", "📁 ⠦", "📁 ⠧", "📁 ⠇", "📁 ⠏",
+];
+const FRAME_DURATION: Duration = Duration::from_millis(200);
 
 #[derive(Debug)]
 pub enum WatcherEvent {
@@ -154,32 +157,33 @@ pub fn watch_directory(
     preferred_format: &str,
 ) {
     let mut file_cache = FileCache::new();
-
-    let quit_msg = format!(
-        "{} {}{}",
-        "Press".blue(),
-        "'q'".yellow().bold(),
-        format!(
-            " to quit{}",
-            if !UsbDrive::find_usb_drives().is_empty() {
-                format!(", {} to unmount USB volume", "'u'".yellow().bold())
-            } else {
-                "".to_string()
-            }
-        )
-        .blue()
-    );
-    println!("{}", quit_msg);
+    let mut frame_index = 0;
+    let mut last_frame = SystemTime::now();
 
     enable_raw_mode().unwrap();
     defer! {
         disable_raw_mode().unwrap();
+        // Clear the cursor line when exiting
+        print!("\r\x1B[K");
+        let _ = io::stdout().flush();
     }
 
     'main: loop {
+        // Update spinner animation
+        if last_frame.elapsed().unwrap_or_default() >= FRAME_DURATION {
+            print!("\r{}", CURSOR_FRAMES[frame_index]);
+            let _ = io::stdout().flush();
+            frame_index = (frame_index + 1) % CURSOR_FRAMES.len();
+            last_frame = SystemTime::now();
+        }
+
         // Check both keyboard and file events in each iteration
         while let Ok(event) = event_rx.try_recv() {
             disable_raw_mode().unwrap();
+            // Clear the cursor line before processing file
+            print!("\r\x1B[K");
+            let _ = io::stdout().flush();
+
             match event {
                 WatcherEvent::File(Ok(event)) => {
                     let paths = match event.kind {
