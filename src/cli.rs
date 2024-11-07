@@ -30,6 +30,13 @@ pub enum Commands {
         #[arg(short, long)]
         machine: Option<String>,
     },
+    /// Set default machine (alias for 'config set machine')
+    Set {
+        /// What to set ('machine' only for now)
+        what: String,
+        /// Value to set (if not provided, will prompt for input)
+        value: Option<String>,
+    },
     /// Machine-related commands
     Machine {
         #[command(subcommand)]

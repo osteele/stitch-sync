@@ -51,7 +51,7 @@ stitch-sync
 
 Set your embroidery machine
 ```bash
-stitch-sync config set machine
+stitch-sync set machine
 ```
 
 This is necessary if your embroidery machine requires a different format than
@@ -166,10 +166,10 @@ You can set configuration values using the following commands:
 
 ```bash
 # Set default watch directory
-stitch-sync config set watch-dir /path/to/directory
+stitch-sync set watch-dir /path/to/directory
 
 # Set default machine
-stitch-sync config set machine "Brother PE800"
+stitch-sync set machine "Brother PE800"
 
 # Clear a configuration value
 stitch-sync config clear watch-dir

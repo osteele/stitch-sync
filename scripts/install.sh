@@ -107,7 +107,7 @@ echo "  • Run 'stitch-sync watch' to start watching for new designs"
 echo
 echo "Configuration (Optional):"
 echo "─────────────────────────"
-echo "  • Run 'stitch-sync config set machine' to set your embroidery machine"
+echo "  • Run 'stitch-sync set machine' to set your embroidery machine"
 echo
 echo "  This is necessary if your embroidery machine requires a different"
 echo "  format than the default (DST), or if it requires the output files"

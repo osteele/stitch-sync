@@ -28,6 +28,21 @@ impl Commands {
                 output_format,
                 machine,
             } => commands::watch_command(dir, output_format, machine),
+            Commands::Set { what, value } => {
+                if what == "machine" {
+                    ConfigCommand::Set {
+                        key: ConfigKey::Machine,
+                        value,
+                    }
+                    .execute()
+                } else {
+                    println!(
+                        "Unknown setting: {}. Currently only 'machine' is supported.",
+                        what
+                    );
+                    Ok(())
+                }
+            }
             Commands::Machine { command } => command.execute(),
             Commands::Machines { format, verbose } => {
                 commands::list_machines_command(format, verbose)
