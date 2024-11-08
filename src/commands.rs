@@ -219,8 +219,7 @@ fn watch_command(
     // Check for updates, but use cache
     if let Ok(Some(latest_version)) = version::get_latest_version(false) {
         print_notice!(
-            "{} {} is available.",
-            "A new version of stitch-sync",
+            "🔄 A new version of stitch-sync {} is available.",
             format!("({})", latest_version).dim()
         );
         println!(
@@ -234,8 +233,8 @@ fn watch_command(
 
     let inkscape = Inkscape::find_app();
     if inkscape.is_none() {
-        println!(
-            "Inkscape not found. Please download and install from {}",
+        print_error!(
+            "🚨 Inkscape not found. Please download and install from {}",
             inkscape::INKSCAPE_DOWNLOAD_URL
         );
         println!("Opening download page in your browser...");
@@ -244,7 +243,7 @@ fn watch_command(
     }
     if !inkscape.as_ref().unwrap().has_inkstitch {
         print_error!(
-            "Warning: ink/stitch extension not found. Please install from {}",
+            "🚨 Warning: ink/stitch extension not found. Please install from {}",
             inkscape::INKSTITCH_INSTALL_URL
         );
     }
@@ -260,7 +259,7 @@ fn watch_command(
         .as_ref()
         .and_then(|m| Machine::interactive_find_by_name(m));
     if machine_name.is_some() && machine.is_none() {
-        println!("Machine '{}' not found", machine_name.unwrap());
+        print_error!("🚨 Machine '{}' not found", machine_name.unwrap());
         return Ok(());
     }
 
@@ -269,7 +268,7 @@ fn watch_command(
         .and_then(|m| m.usb_path.as_deref())
         .unwrap_or_default();
     if let Some(usb_target_dir) = find_usb_containing_path(usb_target_path) {
-        println!("USB target directory: {}", usb_target_dir.display());
+        println!("💾 USB target directory: {}", usb_target_dir.display());
     }
 
     // Determine accepted formats and preferred format
@@ -302,11 +301,11 @@ fn watch_command(
     };
 
     if let Some(ref machine) = machine {
-        println!("{} {}", "🤖 Machine:".bright_blue(), machine.name.bold());
+        println!("{} {}", "🧵 Machine:".bright_blue(), machine.name.bold());
     }
     println!(
         "{} {}",
-        "Directory:".bright_blue(),
+        "📁 Watch directory:".bright_blue(),
         watch_dir.display().to_string().bold()
     );
     match accepted_formats.len() {
@@ -323,13 +322,13 @@ fn watch_command(
     }
     println!(
         " {} {} {}",
-        "→ Files will be copied to".bright_blue(),
+        "→ Files will be copied into the".bright_blue(),
         machine
             .as_ref()
             .and_then(|m| m.usb_path.as_deref())
-            .unwrap_or("the root directory")
+            .unwrap_or(" root ")
             .bold(),
-        "on a mounted USB drive".bright_blue()
+        "directory on a mounted USB drive".bright_blue()
     );
     println!("\n{}", "Press 'q' to quit".bright_black().italic());
 
@@ -376,7 +375,7 @@ fn update_command(dry_run: bool) -> Result<()> {
     });
 
     // Download new version
-    println!("Downloading new version...");
+    println!("⬇️  Downloading new version...");
     let asset_name = format!("stitch-sync-x86_64-{}.tar.gz", platform);
     let download_url = format!(
         "https://github.com/osteele/stitch-sync/releases/download/v{}/{}",
@@ -390,7 +389,7 @@ fn update_command(dry_run: bool) -> Result<()> {
     fs::write(&archive_path, content)?;
 
     // Extract archive
-    println!("Extracting update...");
+    println!("⬇️  Extracting update...");
     let output = process::Command::new("tar")
         .arg("xzf")
         .arg(&archive_path)
@@ -410,10 +409,10 @@ fn update_command(dry_run: bool) -> Result<()> {
     }
 
     // Replace current executable
-    println!("Installing update...");
+    println!("⬇️  Installing update...");
     let new_exe = tmp_dir.path().join(exe_name);
     fs::rename(&new_exe, &current_exe)?;
 
-    println!("Successfully updated to version {}", latest_version);
+    println!("✅ Successfully updated to version {}", latest_version);
     Ok(())
 }

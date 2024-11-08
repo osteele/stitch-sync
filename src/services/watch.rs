@@ -28,9 +28,7 @@ use crate::services::{
 use crate::utils::WATCH_POLL_INTERVAL;
 
 // Option 1: Scanning folder animation
-const CURSOR_FRAMES: &[&str] = &[
-    "📁 ⠋", "📁 ⠙", "📁 ⠹", "📁 ⠸", "📁 ⠼", "📁 ⠴", "📁 ⠦", "📁 ⠧", "📁 ⠇", "📁 ⠏",
-];
+const CURSOR_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const FRAME_DURATION: Duration = Duration::from_millis(200);
 
 #[derive(Debug)]
@@ -171,7 +169,10 @@ pub fn watch_directory(
     'main: loop {
         // Update spinner animation
         if last_frame.elapsed().unwrap_or_default() >= FRAME_DURATION {
-            print!("\r{}", CURSOR_FRAMES[frame_index]);
+            print!(
+                "\r👀 Watching for new stitch files... {}",
+                CURSOR_FRAMES[frame_index]
+            );
             let _ = io::stdout().flush();
             frame_index = (frame_index + 1) % CURSOR_FRAMES.len();
             last_frame = SystemTime::now();
