@@ -1,5 +1,4 @@
 mod cli;
-mod commands;
 mod config;
 mod services;
 mod types;

@@ -9,7 +9,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process;
 
-use crate::commands;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::config::ConfigManager;
 use crate::print_error;
@@ -23,10 +22,8 @@ use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::utils;
 use crate::utils::version;
-use crate::Commands;
-use crate::ConfigCommand;
-use crate::ConfigKey;
-use crate::MachineCommand;
+
+use super::{Commands, ConfigCommand, ConfigKey, MachineCommand};
 
 impl Commands {
     pub fn execute<W: Write>(self, writer: &mut W) -> Result<()> {
@@ -35,7 +32,7 @@ impl Commands {
                 dir,
                 output_format,
                 machine,
-            } => commands::watch_command(dir, output_format, machine, writer),
+            } => watch_command(dir, output_format, machine, writer),
             Commands::Set { what, value } => {
                 if what == "machine" {
                     ConfigCommand::Set {
@@ -54,11 +51,11 @@ impl Commands {
             }
             Commands::Machine { command } => command.execute(writer),
             Commands::Machines { format, verbose } => {
-                commands::list_machines_command(format, verbose, writer)
+                list_machines_command(format, verbose, writer)
             }
             Commands::Formats => Self::list_formats(writer),
             Commands::Config { command } => command.execute(writer),
-            Commands::Update { dry_run } => commands::update_command(dry_run, writer),
+            Commands::Update { dry_run } => update_command(dry_run, writer),
         }
     }
 
@@ -150,7 +147,7 @@ impl MachineCommand {
     pub fn execute<W: Write>(self, writer: &mut W) -> Result<()> {
         match self {
             MachineCommand::List { format, verbose } => {
-                commands::list_machines_command(format, verbose, writer)
+                list_machines_command(format, verbose, writer)
             }
             MachineCommand::Info { name } => Self::show_info(name, writer),
         }
