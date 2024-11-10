@@ -8,6 +8,17 @@ It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
 a format supported by the specified embroidery machine, and copies design files
 to a connected USB drive.
 
+```mermaid
+graph LR
+A[Design files saved to watch folder] --> B(Stitch-sync detects new files)
+B --> C{File format supported?}
+C -->|Yes| D[Copy file to USB drive]
+C -->|No| E{Can convert format?}
+E -->|Yes| F[Convert file with Ink/Stitch]
+F --> D
+E -->|No| G[Skip file]
+```
+
 ## Features
 - Automatically monitors directories for new embroidery design files
 - Converts designs to formats compatible with your embroidery machine

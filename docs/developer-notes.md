@@ -2,6 +2,20 @@
 
 This document contains technical information and guidelines for developers working on the Stitch-sync project.
 
+## High-Level Design
+
+```mermaid
+graph TD
+A[Embroidery Design Files] --> B[Watch Directory]
+B --> C[Stitch-sync Application]
+C --> D{Configuration}
+D --> E[Machine Database]
+D --> F[User Preferences]
+C --> G[Ink/Stitch Extension]
+C --> H[USB Drive Detection]
+H --> I[USB Drive]
+```
+
 ## Project Structure
 
 ```text
