@@ -6,25 +6,37 @@
 
 <img src="docs/icon.svg" alt="Stitch-sync icon" width="100" style="float: right;">
 
-**Stitch-sync** is an automated embroidery file converter that watches for design files and
-prepares them for your embroidery machine.
+**Stitch-sync** is an automated directory watcher and embroidery file converter.
 
-It has two features:
+It watches for design files in a specified directory, and copies them to a
+connected USB drive.
 
-1. It can watch a directory for new design files, and automatically convert and copy
-   them to a connected USB drive.
+It can also convert files to the correct format for your embroidery machine; for
+example, it can convert a DST from [TurtleStitch] to a JEF file for Janome
+embroidery machines.
 
-2. It can use the [ink/stitch extension][inkstitch] for [Inkscape] to convert files
-   to a format supported by the specified embroidery machine.
+```mermaid
+graph LR
+    A[Embroidery file copied<br/>to Downloads directory] --> B{Format<br/>compatible?}
+    B -->|Yes| D[Copy to USB]
+    B -->|No| C[Convert format<br/>using ink/stitch]
+    C --> D
+    style A fill:#f0f0f0
+    style D fill:#e6ffe6
+```
 
 ## Features
 - Automatically monitors directories for new embroidery design files
 - Converts designs to formats compatible with your embroidery machine
 - Supports any machine format that Ink/Stitch can export
-- Copies converted files to an EMB/Embf directory (e.g., on a USB drive)
+- Copies converted files to a USB drive
+- Sanitizes output filenames for better compatibility. For example, it removes
+  spaces and underscores, since some machines do not recognize files with these
+  names.
+- Copies converted files to a subdirectory, for example `EMB/Embf`, for
+  machines that require this
 - Database of embroidery machines and their supported formats
-- Cross-platform support (macOS, Windows, Linux)
-- Sanitizes output filenames for better compatibility
+- Cross-platform support (macOS, Windows, Linux) (work in progress)
 
 ## Prerequisites
 
@@ -51,7 +63,19 @@ Windows:
 irm https://raw.githubusercontent.com/osteele/stitchsync/main/scripts/install.ps1 | iex
 ```
 
+Note: The Windows install script has not yet been tested. As a fallback, you can
+install [Cygwin][] and then run the macOS/Linux instructions from the Cygwin
+terminal.
+
+[Cygwin]: https://www.cygwin.com/
+
 ### From source
+
+1. Install [Rust][]
+2. Clone the repository
+3. Build and install
+
+[Rust]: https://www.rust-lang.org/
 
 ```bash
 # Clone the repository
@@ -68,14 +92,21 @@ cargo install --path .
 stitch-sync
 ```
 
-## Additonal Examples
-
 Specify a target machine for just the current session, and watch for new
 designs:
 
 ```bash
 stitch-sync watch --machine "Brother PE800"
 ```
+
+Set the default machine for future sessions:
+
+```bash
+stitch-sync set machine "Brother PE800" # Set default machine
+stitch-sync # Use default machine
+```
+
+## Additonal Examples
 
 Watch a directory besides the default downloads directory:
 
@@ -241,7 +272,10 @@ Make sure Inkscape is installed and accessible. Download from:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Developer documentation is available in the [docs/] directory.
+Please feel free to submit a Pull Request.
+
+[docs/]: https://github.com/osteele/stitch-sync/tree/main/docs
 
 ## Acknowledgments
 
@@ -254,6 +288,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 [inkscape-win]: https://inkscape.org/release/1.4/windows/
 [inkscape-linux]: https://inkscape.org/release/1.4/linux/
 [inkstitch-install]: https://inkstitch.org/docs/install/
+[TurtleStitch]: https://turtlestitch.com/
 
 ## License
 
