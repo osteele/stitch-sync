@@ -16,6 +16,7 @@ jobs:
         shell: powershell
         run: |
           irm https://raw.githubusercontent.com/osteele/stitchsync/main/scripts/install.ps1 | iex
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
       - name: Run Unix install script
         if: runner.os != 'Windows'
         shell: bash
