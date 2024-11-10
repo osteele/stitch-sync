@@ -68,15 +68,6 @@ cargo install --path .
 stitch-sync
 ```
 
-Set your embroidery machine
-```bash
-stitch-sync set machine
-```
-
-This is necessary if your embroidery machine requires a different format than
-the default (DST), or if it requires the output files to be located in a
-specific directory on the USB drive.
-
 ## Additonal Examples
 
 Specify a target machine for just the current session, and watch for new
