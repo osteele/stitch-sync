@@ -32,7 +32,7 @@ fn convert_file(
 }
 
 fn copy_file_to_usb_drives(source_path: &Path, usb_rel_path: &str) -> Result<(), Box<dyn Error>> {
-    let drives = UsbDrive::find_usb_drives();
+    let drives = UsbDrive::list();
     let target_paths = drives
         .iter()
         .map(|drive| drive.mount_point.join(usb_rel_path))

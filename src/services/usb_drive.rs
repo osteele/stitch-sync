@@ -94,7 +94,7 @@ impl UsbDrive {
             && info.lines().any(|line| protocol_re.is_match(line))
     }
 
-    pub fn find_usb_drives() -> Vec<UsbDrive> {
+    pub fn list() -> Vec<UsbDrive> {
         #[cfg(target_os = "macos")]
         {
             let volumes = Path::new("/Volumes");
@@ -280,7 +280,7 @@ impl UsbDrive {
 }
 
 pub fn find_usb_containing_path(path: &str) -> Option<PathBuf> {
-    UsbDrive::find_usb_drives()
+    UsbDrive::list()
         .into_iter()
         .map(|drive| drive.mount_point)
         .find(|mount_point| mount_point.join(path).is_dir())
@@ -288,7 +288,7 @@ pub fn find_usb_containing_path(path: &str) -> Option<PathBuf> {
 }
 
 pub fn unmount_usb_volume() {
-    let drives = UsbDrive::find_usb_drives();
+    let drives = UsbDrive::list();
 
     match drives.len() {
         0 => {

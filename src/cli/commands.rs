@@ -22,6 +22,8 @@ use crate::types::FILE_FORMATS;
 use crate::types::MACHINES;
 use crate::utils;
 use crate::utils::version;
+use crate::utils::prompt_yes_no;
+use crate::services::usb_drive::UsbDrive;
 
 use super::{Commands, ConfigCommand, ConfigKey, MachineCommand};
 
@@ -274,9 +276,31 @@ fn watch_command<W: Write>(
         .as_ref()
         .and_then(|m| m.usb_path.as_deref())
         .unwrap_or_default();
-    if let Some(usb_target_dir) = find_usb_containing_path(usb_target_path) {
-        writeln!(writer, "💾 USB target directory: {}", usb_target_dir.display())?;
-    }
+
+        let usb_drives = UsbDrive::list();
+
+        if usb_drives.is_empty() {
+        println!("Warning: No USB drives detected. Files will be converted but not copied.");
+    } else {
+        let target_exists = usb_drives.iter().any(|drive| {
+            let full_path = drive.mount_point.join(usb_target_path);
+                full_path.exists()
+            });
+
+            if !target_exists {
+                if let Some(first_drive) = usb_drives.first() {
+                    let full_path = first_drive.mount_point.join(usb_target_path);
+                    println!("Target path '{}' does not exist on any USB drives.", usb_target_path);
+                    if prompt_yes_no(&format!("Create it on {}? ", first_drive.name), None) {
+                        std::fs::create_dir_all(&full_path)
+                            .expect("Failed to create target directory on USB drive");
+                    } else {
+                        println!("Target path '{}' not created. Files will be converted but not copied.", usb_target_path);
+                    }
+                }
+            }
+        }
+
 
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
@@ -311,6 +335,9 @@ fn watch_command<W: Write>(
         writeln!(writer, "{} {}", "🧵 Machine:".bright_blue(), machine.name.clone().bold())?;
     }
     writeln!(writer, "{} {}", "📁 Watch directory:".bright_blue(), watch_dir.display().to_string().bold())?;
+    if let Some(usb_target_dir) = find_usb_containing_path(usb_target_path) {
+        writeln!(writer, "{} {}", "💾 USB target directory:".bright_blue(), usb_target_dir.display().to_string().bold())?;
+    }
     match accepted_formats.len() {
         1 => writeln!(writer, " {} {}", "→ Files will be converted to".bright_blue(), accepted_formats[0].clone().bold())?,
         _ => writeln!(writer, " {} {}", "→ Files will be converted to one of:".bright_blue(), accepted_formats.join(", ").bold())?,

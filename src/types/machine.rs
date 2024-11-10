@@ -117,8 +117,7 @@
                         "I found one machine that might match: {}",
                         similar_machines[0].name
                     );
-                    println!("Use this?");
-                    if prompt_yes_no(Some(true)) {
+                    if prompt_yes_no("Use this? ", Some(true)) {
                         Some(similar_machines[0].clone())
                     } else {
                         None

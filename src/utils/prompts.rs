@@ -1,9 +1,9 @@
 use colored::*;
 use std::io::{stdout, Write};
 
-pub fn prompt_yes_no(default: Option<bool>) -> bool {
+pub fn prompt_yes_no(prompt: &str, default: Option<bool>) -> bool {
     loop {
-        let input = prompt_input(&"(y/n) ".cyan());
+        let input = prompt_input(&prompt);
         match input.to_lowercase().trim() {
             "y" => return true,
             "n" => return false,
