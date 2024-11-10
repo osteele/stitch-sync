@@ -18,11 +18,13 @@ case "$(uname -s)" in
         PLATFORM="unknown-linux-gnu"
         INSTALL_DIR="/usr/local/bin"
         EXE_NAME="stitch-sync"
+        PLATFORM_WARNING="Warning: Stitch-sync has been minimally tested on Linux. USB drive detection is experimental and has not been thoroughly tested on this platform."
         ;;
     MINGW*|MSYS*|CYGWIN*)
         PLATFORM="pc-windows-msvc"
         INSTALL_DIR="$HOME/AppData/Local/StitchSync/bin"
         EXE_NAME="stitch-sync.exe"
+        PLATFORM_WARNING="Warning: Stitch-sync has been minimally tested on Windows. USB drive detection is experimental and has not been thoroughly tested on this platform."
         ;;
     *)
         echo "Unsupported platform: $(uname -s)"
@@ -100,6 +102,12 @@ echo "╚═══════════════════════�
 echo
 echo "✓ Successfully installed StitchSync ${RELEASE_VERSION} to ${INSTALL_DIR}/${EXE_NAME}"
 echo
+
+if [ -n "$PLATFORM_WARNING" ]; then
+    echo "⚠️  $PLATFORM_WARNING"
+    echo
+fi
+
 echo "Getting Started:"
 echo "───────────────"
 echo "  • Run 'stitch-sync --help' to see all available commands"

@@ -8,17 +8,6 @@ It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
 a format supported by the specified embroidery machine, and copies design files
 to a connected USB drive.
 
-```mermaid
-graph LR
-A[Design files saved to watch folder] --> B(Stitch-sync detects new files)
-B --> C{File format supported?}
-C -->|Yes| D[Copy file to USB drive]
-C -->|No| E{Can convert format?}
-E -->|Yes| F[Convert file with Ink/Stitch]
-F --> D
-E -->|No| G[Skip file]
-```
-
 ## Features
 - Automatically monitors directories for new embroidery design files
 - Converts designs to formats compatible with your embroidery machine
@@ -145,6 +134,17 @@ Pfaff Creative 4 (formats: vp3)
 
 ## How It Works
 
+```mermaid
+graph LR
+A[Design files saved to watch folder] --> B(Stitch-sync detects new files)
+B --> C{File format supported?}
+C -->|Yes| D[Copy file to USB drive]
+C -->|No| E{Can convert format?}
+E -->|Yes| F[Convert file with Ink/Stitch]
+F --> D
+E -->|No| G[Skip file]
+```
+
 1. The program watches the specified directory for new embroidery files
 2. When a new file is detected:
    - Checks if the file format is acceptable based on settings:
@@ -197,9 +197,16 @@ stitch-sync config show
 - Windows:
   - Looks for Inkscape in PATH and Program Files
   - Checks all drive letters for USB drives
+  - **Note:** Minimally tested, USB drive detection is experimental
 - Linux:
   - Looks for Inkscape in PATH and common installation directories
   - Checks `/media/<username>` for USB drives
+  - **Note:** Minimally tested, USB drive detection is experimental
+
+## Known Limitations
+
+- The list of supported embroidery machines and formats is currently minimal and may contain errors or omissions. Please report any issues or submit pull requests to improve the machine database.
+- USB drive detection and file copying has not been thoroughly tested on Windows and Linux platforms. Use with caution and verify the results. Feedback and contributions to improve cross-platform support are welcome.
 
 ## Troubleshooting
 

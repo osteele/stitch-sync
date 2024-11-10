@@ -2,7 +2,47 @@
 
 This document describes how the stitch-sync application determines which file formats to support, where to watch for design files, where to copy converted files, and how it handles design files in various scenarios.
 
-## Determining Supported File Formats
+- [Configuration Management](#configuration-management)
+- [Format Selection and Machine Compatibility](#format-selection-and-machine-compatibility)
+  - [Command Line Options](#command-line-options)
+  - [Determining Supported File Formats](#determining-supported-file-formats)
+    - [Default Behavior (No Options)](#default-behavior-no-options)
+    - [With `--machine` Specified](#with---machine-specified)
+    - [With `--output-format` Specified](#with---output-format-specified)
+    - [With Both Options](#with-both-options)
+  - [Acceptable Formats](#acceptable-formats)
+- [Determining Watch Location](#determining-watch-location)
+- [Detecting USB Drives](#detecting-usb-drives)
+  - [macOS](#macos)
+  - [Windows](#windows)
+  - [Linux](#linux)
+- [Determining USB Drive Location](#determining-usb-drive-location)
+- [Handling Design Files](#handling-design-files)
+
+## Configuration Management
+
+Configuration is handled through:
+1. Command-line arguments (highest priority)
+2. Environment variables
+3. Configuration file (lowest priority)
+
+The configuration file uses TOML format and is located at:
+- Linux/macOS: `~/.config/stitch-sync/config.toml`
+- Windows: `%APPDATA%\stitch-sync\config.toml`
+
+## Format Selection and Machine Compatibility
+
+Stitch-sync can operate in two modes:
+- Simple format conversion (using `--output-format`)
+- Machine-aware conversion (using `--machine`)
+
+### Command Line Options
+
+- `--machine` / `-m`: Specify target embroidery machine
+- `--output-format` / `-o`: Specify desired output format
+- Both options are optional and can be used together
+
+### Determining Supported File Formats
 
 ```mermaid
 graph TD
@@ -18,15 +58,29 @@ H -->|Yes| I[Use specified format]
 H -->|No| G
 ```
 
-Stitch-sync determines the file formats to support based on:
+#### Default Behavior (No Options)
+- Accepts DST files
+- Converts to DST format
+- Copies only converted files to USB directory
 
-1. The embroidery machine specified by the user
-   - If a machine is specified via the CLI `--machine` option or `stitch-sync set machine` command, stitch-sync will accept the file formats supported by that machine, as defined in the machine database.
-   - If no machine is specified, stitch-sync will only accept DST files by default.
+#### With `--machine` Specified
+- Accepts all formats supported by the specified machine
+- Uses machine's primary format as preferred output format
+- Copies both converted files and already-compatible files to USB directory
 
-2. The output format specified by the user
-   - If an output format is explicitly specified via the CLI `--output-format` option, stitch-sync will attempt to convert design files to that format, regardless of the selected machine's supported formats.
-   - If no output format is specified, stitch-sync will use the first supported format listed for the selected machine, or DST if no machine is selected.
+#### With `--output-format` Specified
+- Accepts only input files that can be converted to specified format
+- Converts all files to specified format
+- Copies only converted files to USB directory
+
+#### With Both Options
+- Accepts all formats supported by the specified machine
+- Uses specified output format instead of machine's default
+- Copies both converted files and already-compatible files to USB directory
+
+### Acceptable Formats
+- With `--machine`: All formats listed in machine's specifications
+- Without `--machine`: Only DST
 
 Stitch-sync will convert design files to the preferred output format if possible. If a design cannot be converted to the preferred format, but the machine supports other formats, stitch-sync will convert it to one of the other supported formats instead.
 

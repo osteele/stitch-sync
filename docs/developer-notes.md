@@ -1,6 +1,6 @@
 # Developer Notes
 
-This document contains technical information and guidelines for developers working on the Stitch-sync project.
+This document contains technical information and guidelines for developers working on the Stitch-sync project, which is implemented in Rust.
 
 ## High-Level Design
 
@@ -15,6 +15,25 @@ C --> G[Ink/Stitch Extension]
 C --> H[USB Drive Detection]
 H --> I[USB Drive]
 ```
+
+## Technology Stack
+
+Stitch-sync is built using the following technologies:
+
+- **Rust**: The core application logic is implemented in Rust, chosen for its performance, safety, and cross-platform support.
+- **Inkscape with ink/stitch**: Used for converting embroidery file formats.
+- **CLI**: The command-line interface is built using the `clap` crate.
+- **Config**: Configuration management uses the `serde` and `toml` crates.
+- **CSV**: The machine database is stored as a CSV file, parsed using the `csv` crate.
+- **Logging**: Logging is handled by the `log` and `env_logger` crates.
+- **Error Handling**: Errors are managed using the `anyhow` and `thiserror` crates.
+- **File System**: File system interactions use the standard `std::fs` module.
+- **OS Integration**: Platform-specific functionality is implemented using conditional compilation and OS-specific crates:
+  - **Linux**: `libudev` for USB device detection
+  - **macOS**: `core-foundation` and `io-kit-sys` for device management
+  - **Windows**: `windows` crate for Win32 API access
+- **Concurrency**: Asynchronous operations and thread management use the `tokio` and `crossbeam` crates.
+- **Testing**: Unit and integration tests are written using the built-in Rust testing framework.
 
 ## Project Structure
 
@@ -120,14 +139,3 @@ See `.github/workflows/crossplatform-test.yml` for the CI configuration.
 - Use `anyhow::Result` for error propagation
 - Create custom errors when needed using `thiserror`
 - Provide meaningful error messages for user-facing errors
-
-## Configuration Management
-
-Configuration is handled through:
-1. Command-line arguments (highest priority)
-2. Environment variables
-3. Configuration file (lowest priority)
-
-The configuration file uses TOML format and is located at:
-- Linux/macOS: `~/.config/stitch-sync/config.toml`
-- Windows: `%APPDATA%\stitch-sync\config.toml`
