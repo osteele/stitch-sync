@@ -64,6 +64,12 @@ pub enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Open the project homepage
+    Homepage,
+    /// Create a new bug report on GitHub
+    ReportBug,
+    /// Show version and build information
+    Version,
 }
 
 #[derive(Parser)]

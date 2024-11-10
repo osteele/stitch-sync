@@ -182,3 +182,60 @@ When a new file is detected in the watched directory, stitch-sync does the follo
 4. If conversion fails, an error is logged and the file is skipped
 
 Stitch-sync continuously monitors the watched directory for new files and processes them as they appear. The user can press 'q' at any time to gracefully quit the application.
+
+## Command Line Interface
+
+### Commands
+
+- `watch`: Watch directory and convert files
+- `set`: Set default machine (alias for `config set machine`)
+- `machine`: Machine-related commands
+- `machines`: List all supported machines (alias for `machine list`)
+- `formats`: List supported file formats
+- `config`: Configuration commands
+- `update`: Update stitch-sync to the latest version
+- `homepage`: Open the project homepage
+- `version`: Display the current version of stitch-sync, along with platform and build information
+- `report-bug`: Open the new issue page on the project's GitHub repository in the user's default web browser. It includes a pre-filled bug report template with the user's stitch-sync version, platform, and build information.
+
+### `homepage` Command
+
+The `homepage` command opens the project homepage (https://github.com/osteele/stitch-sync) in the user's default web browser.
+
+```mermaid
+graph LR
+A[User runs `stitch-sync homepage`] --> B[Application calls `services::open_browser`]
+B --> C[Default browser opens project homepage]
+```
+
+### `version` Command
+
+The `version` command displays the current version of stitch-sync, along with platform and build information.
+
+```
+$ stitch-sync version
+stitch-sync 0.1.0
+Platform: macos-x86_64
+Build Date: 2023-06-08
+Commit Hash: a1b2c3d
+```
+
+### `report-bug` Command
+
+The `report-bug` command opens the new issue page on the project's GitHub repository in the user's default web browser. It includes a pre-filled bug report template with the user's stitch-sync version, platform, and build information.
+
+```mermaid
+graph LR
+A[User runs `stitch-sync report-bug`] --> B[Application generates bug report template]
+B --> C[Application opens new issue page with pre-filled template]
+```
+
+The bug report template includes:
+- A description of the bug
+- Steps to reproduce the issue
+- Expected behavior
+- Screenshots (if applicable)
+- Environment information (stitch-sync version, platform, build details)
+- Additional context
+
+This makes it easier for users to provide relevant information when reporting bugs, helping maintainers diagnose and fix issues more efficiently.

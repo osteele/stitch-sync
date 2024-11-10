@@ -56,6 +56,9 @@ impl Commands {
             Commands::Formats => Self::list_formats(writer),
             Commands::Config { command } => command.execute(writer),
             Commands::Update { dry_run } => update_command(dry_run, writer),
+            Commands::Homepage => homepage_command(writer),
+            Commands::ReportBug => report_bug_command(writer),
+            Commands::Version => version_command(writer),
         }
     }
 
@@ -402,5 +405,73 @@ fn update_command<W: Write>(dry_run: bool, writer: &mut W) -> Result<()> {
     fs::rename(&new_exe, &current_exe)?;
 
     writeln!(writer, "✅ Successfully updated to version {}", latest_version)?;
+    Ok(())
+}
+
+fn homepage_command<W: Write>(_writer: &mut W) -> Result<()> {
+    let url = "https://osteele.github.io/stitch-sync/";
+    println!("Opening project homepage in your browser...");
+    services::open_browser(url);
+    Ok(())
+}
+
+fn report_bug_command<W: Write>(writer: &mut W) -> Result<()> {
+    let url = "https://github.com/osteele/stitch-sync/issues/new";
+
+    // Get version information
+    let mut version_output = Vec::new();
+    version_command(&mut version_output)?;
+    let version_info = String::from_utf8(version_output)?;
+
+    // Prepare the bug report template
+    let bug_report_template = format!(
+        "**Describe the bug**
+A clear and concise description of what the bug is.
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
+
+**Expected behavior**
+A clear and concise description of what you expected to happen.
+
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
+
+**Environment:**
+```
+{}
+```
+
+**Additional context**
+Add any other context about the problem here.
+",
+        version_info.trim()
+    );
+
+    // Open the new issue page with the bug report template
+    let url_with_template = format!("{}?body={}", url, urlencoding::encode(&bug_report_template));
+    writeln!(writer, "Opening new issue page on GitHub with bug report template...")?;
+    services::open_browser(&url_with_template);
+    Ok(())
+}
+
+fn version_command<W: Write>(writer: &mut W) -> Result<()> {
+    // Get platform information
+    let platform = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+
+    // Get build information
+    let build_version = env!("CARGO_PKG_VERSION");
+    let build_date = std::env::var("VERGEN_BUILD_DATE").unwrap_or_else(|_| "Unknown".to_string());
+    let commit_hash = std::env::var("VERGEN_GIT_SHA").unwrap_or_else(|_| "Unknown".to_string());
+
+    writeln!(writer, "stitch-sync {}", build_version)?;
+    writeln!(writer, "Platform: {}-{}", platform, arch)?;
+    writeln!(writer, "Build Date: {}", build_date)?;
+    writeln!(writer, "Commit Hash: {}", commit_hash)?;
     Ok(())
 }
