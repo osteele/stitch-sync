@@ -102,10 +102,9 @@ pub enum ConfigCommand {
     },
 }
 
-#[derive(Clone, ValueEnum)]
+#[derive(Debug, Clone, PartialEq, ValueEnum)]
 pub enum ConfigKey {
-    /// Watch directory
+    #[value(name = "watch-dir")]
     WatchDir,
-    /// Default machine
     Machine,
 }
