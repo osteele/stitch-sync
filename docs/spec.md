@@ -18,6 +18,10 @@ This document describes how the stitch-sync application determines which file fo
   - [Linux](#linux)
 - [Determining USB Drive Location](#determining-usb-drive-location)
 - [Handling Design Files](#handling-design-files)
+- [Inkscape and ink/stitch Integration](#inkscape-and-inkstitch-integration)
+- [Command Line Interface](#command-line-interface)
+  - [Commands](#commands)
+  - [`homepage` Command](#homepage-command)
 
 ## Configuration Management
 
@@ -157,12 +161,17 @@ sequenceDiagram
         alt format accepted
             S->>U: Copy file to USB
         else format needs conversion
-            S->>I: Convert file
-            I-->>S: Conversion result
-            alt conversion successful
-                S->>U: Copy converted file to USB
-            else conversion failed
-                S->>S: Log error and skip file
+            alt Inkscape and ink/stitch installed
+                S->>I: Convert file
+                I-->>S: Conversion result
+                alt conversion successful
+                    S->>U: Copy converted file to USB
+                else conversion failed
+                    S->>S: Log error and skip file
+                end
+            else Inkscape or ink/stitch missing
+                S->>S: Log warning and copy file without conversion
+                S->>U: Copy unconverted file to USB
             end
         end
     else not embroidery file
@@ -176,32 +185,21 @@ When a new file is detected in the watched directory, stitch-sync does the follo
    - If not, the file is ignored
 2. Checks if the file format is accepted based on the specified machine and/or output format settings
    - If the file is in an accepted format, it is copied as-is to the USB drive location
-   - If the file is not in an accepted format, stitch-sync attempts to convert it to the preferred output format using Ink/Stitch
-3. If conversion is successful, the converted file is copied to the USB drive location
+   - If the file is not in an accepted format:
+     - If Inkscape and ink/stitch are installed, stitch-sync attempts to convert it to the preferred output format
+     - If Inkscape or ink/stitch are missing, a warning is logged and the file is copied without conversion
+3. If conversion is attempted and successful, the converted file is copied to the USB drive location
    - The copied file's name is sanitized to ensure better compatibility
 4. If conversion fails, an error is logged and the file is skipped
 
 Stitch-sync continuously monitors the watched directory for new files and processes them as they appear. The user can press 'q' at any time to gracefully quit the application.
 
-## Command Line Interface
+## Inkscape and ink/stitch Integration
 
-### Commands
+While stitch-sync relies on Inkscape and the ink/stitch extension for file format conversion, they are not strictly required for the application to run.
 
-- `watch`: Watch directory and convert files
-- `set`: Set default machine (alias for `config set machine`)
-- `machine`: Machine-related commands
-- `machines`: List all supported machines (alias for `machine list`)
-- `formats`: List supported file formats
-- `config`: Configuration commands
-- `update`: Update stitch-sync to the latest version
-- `homepage`: Open the project homepage
+If Inkscape is not found on the system when starting the `watch` command, stitch-sync will print a warning message indicating that files will be copied to USB drives without conversion. It will then continue to monitor the watch directory and copy any compatible embroidery files to the target USB drive, skipping the conversion step.
 
-### `homepage` Command
+Similarly, if Inkscape is installed but the ink/stitch extension is missing, a warning will be printed but the application will continue to run, copying files without conversion.
 
-The `homepage` command opens the project homepage (https://github.com/osteele/stitch-sync) in the user's default web browser.
-
-```mermaid
-graph LR
-A[User runs `stitch-sync homepage`] --> B[Application calls `services::open_browser`]
-B --> C[Default browser opens project homepage]
-```
+This allows users to still utilize stitch-sync for automating the transfer of embroidery files to their machines, even if they don't have Inkscape set up for file conversion. However, for the full functionality of automatic format conversion, both Inkscape and ink/stitch should be installed.

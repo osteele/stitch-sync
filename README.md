@@ -4,9 +4,13 @@
 An automated embroidery file converter that watches for design files and
 prepares them for your embroidery machine.
 
-It uses the [ink/stitch extension][inkstitch] for [Inkscape] to convert files to
-a format supported by the specified embroidery machine, and copies design files
-to a connected USB drive.
+It has two features:
+
+1. It can watch a directory for new design files, and automatically convert and copy
+   them to a connected USB drive.
+
+2. It can use the [ink/stitch extension][inkstitch] for [Inkscape] to convert files
+   to a format supported by the specified embroidery machine.
 
 ## Features
 - Automatically monitors directories for new embroidery design files
@@ -18,6 +22,8 @@ to a connected USB drive.
 - Sanitizes output filenames for better compatibility
 
 ## Prerequisites
+
+For the conversion feature:
 
 1. [Inkscape][Inkscape] must be installed on your system
 2. The [ink/stitch extension][inkstitch] must be installed

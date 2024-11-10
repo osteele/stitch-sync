@@ -241,18 +241,17 @@ fn watch_command<W: Write>(
     let config = config_manager.load()?;
 
     let inkscape = Inkscape::find_app();
-    if inkscape.is_none() {
-        print_error!(
-            "🚨 Inkscape not found. Please download and install from {}",
+    let has_inkscape = inkscape.is_some();
+    let has_inkstitch = inkscape.as_ref().map_or(false, |i| i.has_inkstitch);
+
+    if !has_inkscape {
+        println!(
+            "Warning: Inkscape is not installed. Files will be copied to USB drives but not converted. For file conversion, please download Inkscape from {} and install it.",
             inkscape::INKSCAPE_DOWNLOAD_URL
         );
-        println!("Opening download page in your browser...");
-        services::open_browser(inkscape::INKSCAPE_DOWNLOAD_URL);
-        return Ok(());
-    }
-    if !inkscape.as_ref().unwrap().has_inkstitch {
-        print_error!(
-            "🚨 Warning: ink/stitch extension not found. Please install from {}",
+    } else if !has_inkstitch {
+        println!(
+            "Warning: The ink/stitch extension is not installed. Files will be copied to USB drives but not converted. For file conversion, please download ink/stitch from {} and install it.",
             inkscape::INKSTITCH_INSTALL_URL
         );
     }
@@ -358,6 +357,7 @@ fn watch_command<W: Write>(
             .map(|s| s.as_str())
             .collect::<Vec<_>>(),
         &preferred_format,
+        inkscape,
     );
     Ok(())
 }

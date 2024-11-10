@@ -66,7 +66,7 @@ fn copy_file_to_usb_drives(source_path: &Path, usb_rel_path: &str) -> Result<(),
 
 pub fn handle_file_detection(
     path: &Path,
-    inkscape: &Inkscape,
+    inkscape: &Option<Inkscape>,
     usb_target_path: &Option<&str>,
     accepted_formats: &[&str],
     preferred_format: &str,
@@ -81,12 +81,12 @@ pub fn handle_file_detection(
         if let Some(usb_rel_path) = usb_target_path {
             copy_file_to_usb_drives(path, usb_rel_path)?;
         }
-    } else if inkscape
-        .supported_read_formats
+    } else if inkscape.as_ref().map_or(false, |inkscape|
+        inkscape.supported_read_formats
         .contains(&extension.as_str())
         && inkscape.supported_write_formats.contains(&preferred_format)
-    {
-        convert_file(path, inkscape, preferred_format)?;
+    ) {
+        convert_file(path, inkscape.as_ref().unwrap(), preferred_format)?;
     }
     Ok(())
 }

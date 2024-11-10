@@ -21,10 +21,7 @@ use std::{
 };
 
 use crate::services::usb_drive::unmount_usb_volume;
-use crate::services::{
-    file_conversion::handle_file_detection,
-    inkscape::{self, Inkscape},
-};
+use crate::services::{ file_conversion::handle_file_detection, inkscape::Inkscape };
 use crate::utils::WATCH_POLL_INTERVAL;
 
 // Option 1: Scanning folder animation
@@ -83,6 +80,7 @@ pub fn watch(
     usb_target_path: &Option<&str>,
     accepted_formats: &[&str],
     preferred_format: &str,
+    inkscape: Option<Inkscape>,
 ) {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
@@ -91,17 +89,6 @@ pub fn watch(
         r.store(false, Ordering::SeqCst);
     })
     .expect("Error setting Ctrl-C handler");
-
-    let inkscape = match Inkscape::find_app() {
-        Some(info) => info,
-        None => {
-            println!(
-                "Inkscape not found. Please download and install from {}",
-                inkscape::INKSCAPE_DOWNLOAD_URL
-            );
-            return;
-        }
-    };
 
     if !watch_dir.exists() {
         println!("Directory does not exist: {}", watch_dir.display());
@@ -149,7 +136,7 @@ pub fn watch(
 pub fn watch_directory(
     _path: impl AsRef<Path>,
     event_rx: Receiver<WatcherEvent>,
-    inkscape: Inkscape,
+    inkscape: Option<Inkscape>,
     usb_target_path: &Option<&str>,
     accepted_formats: &[&str],
     preferred_format: &str,
@@ -196,16 +183,19 @@ pub fn watch_directory(
                         _ => vec![],
                     };
 
-                    // Use the new filter_new_files method
                     for path in file_cache.filter_new_files(&paths) {
-                        if let Err(e) = handle_file_detection(
-                            path,
-                            &inkscape,
-                            usb_target_path,
-                            accepted_formats,
-                            preferred_format,
-                        ) {
-                            eprintln!("Error handling file creation: {}", e);
+                        if inkscape.is_some() {
+                            if let Err(e) = handle_file_detection(
+                                path,
+                                &inkscape,
+                                usb_target_path,
+                                accepted_formats,
+                                preferred_format,
+                            ) {
+                                eprintln!("Error handling file creation: {}", e);
+                            }
+                        } else {
+                            println!("Warning: File {} cannot be converted without Inkscape and ink/stitch.", path.display());
                         }
                     }
                 }
