@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Strict error handling
+set -euo pipefail
+IFS=$'\n\t'
+
 # Parse command line arguments
 ALLOW_DIRTY=false
 FORCE=false
@@ -39,30 +43,14 @@ if ! cargo test; then
     exit 1
 fi
 
-# Get latest release info from GitHub API
-echo "Fetching latest release information..."
-RELEASE_INFO=$(curl -s "https://api.github.com/repos/${REPO_WITH_OWNER}/releases/latest")
-if [ $? -ne 0 ]; then
-    echo "Failed to fetch release information"
-    exit 1
-fi
-
-# Extract current version tag
-CURRENT_VERSION=$(echo "$RELEASE_INFO" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
+# Read version from Cargo.toml
+CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
 if [ -z "$CURRENT_VERSION" ]; then
-    echo "Failed to determine latest version"
+    echo "Failed to determine current version from Cargo.toml"
     exit 1
 fi
 
-# Remove 'v' prefix if present
-CURRENT_VERSION=${CURRENT_VERSION#v}
-
-# Split version into components
-IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-# Increment patch version
-NEW_PATCH=$((PATCH + 1))
-NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+NEW_VERSION="v${CURRENT_VERSION}"
 
 # Prepare tag command
 TAG_CMD="git tag"

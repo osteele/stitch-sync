@@ -1,6 +1,6 @@
 [package]
 name = "stitch-sync"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["Oliver Steele <steele@osteele.com>"]
 description = "Automatically convert embroidery files and optionally copy them to a USB drive"
