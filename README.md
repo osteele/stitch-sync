@@ -1,5 +1,8 @@
 # Stitch-sync
 [![Cross-Platform Test](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml/badge.svg)](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml)
+[![Latest Release](https://img.shields.io/github/v/release/osteele/stitch-sync)](https://github.com/osteele/stitch-sync/releases)
+[![License](https://img.shields.io/github/license/osteele/stitch-sync)](LICENSE)
+[![Platform Support](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen)]()
 
 An automated embroidery file converter that watches for design files and
 prepares them for your embroidery machine.
