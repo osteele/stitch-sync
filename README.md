@@ -8,21 +8,27 @@
 
 **Stitch-sync** is an automated directory watcher and embroidery file converter.
 
+
+
 It watches for design files in a specified directory, and copies them to a
 connected USB drive.
 
-It can also convert files to the correct format for your embroidery machine; for
-example, it can convert a DST from [TurtleStitch] to a JEF file for Janome
+It can also convert files to the correct format for your embroidery machine. For
+example, it can convert a DST file from [TurtleStitch] to a JEF file for Janome
 embroidery machines.
 
+[View on GitHub](https://github.com/osteele/stitch-sync)
+
 ## Features
-- Automatically monitors directories for new embroidery design files
+- Automatically monitors directories for new embroidery design files.
+  - The default directory is the user's Downloads directory. Other directories can be specified with the `--dir` option.
 - Converts designs to formats compatible with your embroidery machine
 - Supports any machine format that Ink/Stitch can export
 - Copies converted files to a USB drive
 - Sanitizes output filenames for better compatibility. For example, it removes
   spaces and underscores, since some machines do not recognize files with these
   names.
+  - To do: Only do this if the machine requires it
 - Copies converted files to a subdirectory, for example `EMB/Embf`, for
   machines that require this
 - Database of embroidery machines and their supported formats
@@ -30,7 +36,7 @@ embroidery machines.
 
 ## Prerequisites
 
-For the conversion feature:
+Only if you use the conversion feature:
 
 1. [Inkscape][Inkscape] must be installed on your system
 2. The [ink/stitch extension][inkstitch] must be installed
@@ -78,30 +84,36 @@ cargo install --path .
 
 ## Basic Usage
 
+Watch the Downloads directory for new embroidery files, and copy them to a USB drive:
+
 ```bash
 stitch-sync
 ```
 
-Specify a target machine for just the current session, and watch for new
-designs:
-
-```bash
-stitch-sync watch --machine "Brother PE800"
-```
-
-Set the default machine for future sessions:
-
-```bash
-stitch-sync set machine "Brother PE800" # Set default machine
-stitch-sync # Use default machine
-```
-
-## Additonal Examples
-
-Watch a directory besides the default downloads directory:
+Watch a directory other than the Downloads directory:
 
 ```bash
 stitch-sync watch --dir /path/to/directory
+```
+
+## Additional Features
+
+By default, stitch-sync copies DST files (the industry standard format) to a USB drive. You only need to specify a machine if:
+- Your machine doesn't accept DST files (e.g., Janome machines that require JEF format)
+- Your machine needs files in a specific directory (e.g., `EMB/Embf`)
+- Your machine has special filename requirements
+
+If you do need to specify a machine, you can do it for just the current session:
+
+```bash
+stitch-sync watch --machine "Janome MC9900"
+```
+
+Or set it as the default for future sessions:
+
+```bash
+stitch-sync set machine "Janome MC9900" # Set default machine
+stitch-sync # Use default machine
 ```
 
 Select a different output format from the default (DST):
