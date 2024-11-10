@@ -11,11 +11,12 @@ use cli::*;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    let mut writer = std::io::stdout();
     cli.command
         .unwrap_or(Commands::Watch {
             dir: None,
             output_format: None,
             machine: None,
         })
-        .execute()
+        .execute(&mut writer)
 }

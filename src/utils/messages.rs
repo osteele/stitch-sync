@@ -27,3 +27,17 @@ macro_rules! print_notice {
         println!("{}", $fmt.with(get_contrasting_color(MessageType::Info)))
     }};
 }
+
+#[macro_export]
+macro_rules! write_notice {
+    ($writer:expr, $($arg:tt)*) => {
+        writeln!($writer, "{} {}", "🔔".bright_blue(), format!($($arg)*)).unwrap();
+    };
+}
+
+#[macro_export]
+macro_rules! write_error {
+    ($writer:expr, $($arg:tt)*) => {
+        writeln!($writer, "{} {}", "🚨".bright_red(), format!($($arg)*)).unwrap();
+    };
+}

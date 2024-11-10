@@ -1,9 +1,11 @@
 use anyhow::Result;
-use colored::*;
+use colored::Colorize as Colorize;
+use crossterm::style::Stylize;
 use reqwest;
 
 use std::env;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process;
 
@@ -11,7 +13,7 @@ use crate::commands;
 use crate::config::defaults::DEFAULT_FORMAT;
 use crate::config::ConfigManager;
 use crate::print_error;
-use crate::print_notice;
+use crate::write_notice;
 use crate::services;
 use crate::services::find_usb_containing_path;
 use crate::services::inkscape;
@@ -27,64 +29,65 @@ use crate::ConfigKey;
 use crate::MachineCommand;
 
 impl Commands {
-    pub fn execute(self) -> Result<()> {
+    pub fn execute<W: Write>(self, writer: &mut W) -> Result<()> {
         match self {
             Commands::Watch {
                 dir,
                 output_format,
                 machine,
-            } => commands::watch_command(dir, output_format, machine),
+            } => commands::watch_command(dir, output_format, machine, writer),
             Commands::Set { what, value } => {
                 if what == "machine" {
                     ConfigCommand::Set {
                         key: ConfigKey::Machine,
                         value,
                     }
-                    .execute()
+                    .execute(writer)
                 } else {
-                    println!(
+                    writeln!(
+                        writer,
                         "Unknown setting: {}. Currently only 'machine' is supported.",
                         what
-                    );
+                    )?;
                     Ok(())
                 }
             }
-            Commands::Machine { command } => command.execute(),
+            Commands::Machine { command } => command.execute(writer),
             Commands::Machines { format, verbose } => {
-                commands::list_machines_command(format, verbose)
+                commands::list_machines_command(format, verbose, writer)
             }
-            Commands::Formats => Self::list_formats(),
-            Commands::Config { command } => command.execute(),
-            Commands::Update { dry_run } => commands::update_command(dry_run),
+            Commands::Formats => Self::list_formats(writer),
+            Commands::Config { command } => command.execute(writer),
+            Commands::Update { dry_run } => commands::update_command(dry_run, writer),
         }
     }
 
-    fn list_formats() -> Result<()> {
+    fn list_formats<W: Write>(writer: &mut W) -> Result<()> {
         let mut formats = FILE_FORMATS.to_vec();
         formats.sort_by_key(|format| format.extension.to_owned());
 
         for format in formats {
-            print!("{}: {}", format.extension, format.manufacturer);
+            write!(writer, "{}: {}", format.extension, format.manufacturer)?;
             if let Some(notes) = format.notes {
-                print!(" -- {}", notes);
+                write!(writer, " -- {}", notes)?;
             }
-            println!();
+            writeln!(writer)?;
         }
         Ok(())
     }
 }
 
 impl ConfigCommand {
-    pub fn execute(self) -> Result<()> {
+    pub fn execute<W: Write>(self, writer: &mut W) -> Result<()> {
         let config_manager = ConfigManager::new()?;
         match self {
             ConfigCommand::Show => {
                 let config = config_manager.load()?;
                 if let Some(dir) = &config.watch_dir {
-                    println!("Watch directory: {}", dir.display());
+                    writeln!(writer, "Watch directory: {}", dir.display())?;
                 }
                 if let Some(machine) = &config.machine {
-                    println!("Default machine: {}", machine);
+                    writeln!(writer, "Default machine: {}", machine)?;
                 }
                 Ok(())
             }
@@ -92,16 +95,16 @@ impl ConfigCommand {
                 ConfigKey::WatchDir => {
                     let path = PathBuf::from(value.expect("Watch directory path is required"));
                     config_manager.set_watch_dir(path)?;
-                    println!("Watch directory set");
+                    writeln!(writer, "Watch directory set")?;
                     Ok(())
                 }
                 ConfigKey::Machine => {
                     let machine = Self::select_machine(value);
                     if let Some(machine) = machine {
                         config_manager.set_machine(machine.name)?;
-                        println!("Default machine set");
+                        writeln!(writer, "Default machine set")?;
                     } else {
-                        println!("No machine selected");
+                        writeln!(writer, "No machine selected")?;
                     }
                     Ok(())
                 }
@@ -109,12 +112,12 @@ impl ConfigCommand {
             ConfigCommand::Clear { key } => match key {
                 ConfigKey::WatchDir => {
                     config_manager.clear_watch_dir()?;
-                    println!("Watch directory cleared");
+                    writeln!(writer, "Watch directory cleared")?;
                     Ok(())
                 }
                 ConfigKey::Machine => {
                     config_manager.clear_machine()?;
-                    println!("Default machine cleared");
+                    writeln!(writer, "Default machine cleared")?;
                     Ok(())
                 }
             },
@@ -144,46 +147,50 @@ impl ConfigCommand {
 }
 
 impl MachineCommand {
-    pub fn execute(self) -> Result<()> {
+    pub fn execute<W: Write>(self, writer: &mut W) -> Result<()> {
         match self {
             MachineCommand::List { format, verbose } => {
-                commands::list_machines_command(format, verbose)
+                commands::list_machines_command(format, verbose, writer)
             }
-            MachineCommand::Info { name } => Self::show_info(name),
+            MachineCommand::Info { name } => Self::show_info(name, writer),
         }
     }
 
-    fn show_info(name: String) -> Result<()> {
+    fn show_info<W: Write>(name: String, writer: &mut W) -> Result<()> {
         match Machine::interactive_find_by_name(&name) {
             Some(info) => {
-                println!("{}", info.name);
+                writeln!(writer, "{}", info.name)?;
                 if let Some(notes) = &info.notes {
-                    println!("  Notes: {}", notes);
+                    writeln!(writer, "  Notes: {}", notes)?;
                 }
                 if !info.synonyms.is_empty() {
-                    println!("  Synonyms: {}", info.synonyms.join(", "));
+                    writeln!(writer, "  Synonyms: {}", info.synonyms.join(", "))?;
                 }
-                if !info.formats.is_empty() {
-                    println!("  Formats: {}", info.formats.join(", "));
+                if !info.file_formats.is_empty() {
+                    writeln!(writer, "  Formats: {}", info.file_formats.join(", "))?;
                 }
                 if let Some(design_size) = &info.design_size {
-                    println!("  Design size: {}", design_size);
+                    writeln!(writer, "  Design size: {}", design_size)?;
                 }
                 if let Some(path) = &info.usb_path {
-                    println!("  USB path: {}", path);
+                    writeln!(writer, "  USB path: {}", path)?;
                 }
             }
-            None => println!("Machine '{}' not found", name),
+            None => writeln!(writer, "Machine '{}' not found", name)?,
         }
         Ok(())
     }
 }
 
-fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
+fn list_machines_command<W: Write>(
+    format: Option<String>,
+    verbose: bool,
+    writer: &mut W,
+) -> Result<()> {
     let machines = if let Some(format) = format {
         MACHINES
             .iter()
-            .filter(|m| m.formats.contains(&format.to_lowercase()))
+            .filter(|m| m.file_formats.contains(&format.to_lowercase()))
             .collect::<Vec<_>>()
     } else {
         MACHINES.iter().collect()
@@ -191,41 +198,41 @@ fn list_machines_command(format: Option<String>, verbose: bool) -> Result<()> {
 
     for machine in machines {
         if verbose {
-            println!("{}", machine.name.bold());
+            writeln!(writer, "{}", machine.name.clone().bold())?;
             if !machine.synonyms.is_empty() {
-                println!("  {} {}", "Synonyms:".blue(), machine.synonyms.join(", "));
+                writeln!(writer, "  {} {}", "Synonyms:".stylize().blue(), machine.synonyms.join(", "))?;
             }
             if let Some(notes) = &machine.notes {
-                println!("  {}: {}", "Note".blue(), notes);
+                writeln!(writer, "  {}: {}", "Note".stylize().blue(), notes)?;
             }
             if let Some(design_size) = &machine.design_size {
-                println!("  {}: {}", "Design size".blue(), design_size);
+                writeln!(writer, "  {}: {}", "Design size".stylize().blue(), design_size)?;
             }
             if let Some(usb_path) = &machine.usb_path {
-                println!("  {}: {}", "USB path".blue(), usb_path);
+                writeln!(writer, "  {}: {}", "USB path".stylize().blue(), usb_path)?;
             }
         } else {
-            println!("{} ({})", machine.name.bold(), machine.formats.join(", "));
+            writeln!(
+                writer,
+                "{} ({})",
+                machine.name.clone().bold(),
+                machine.file_formats.join(", ")
+            )?;
         }
     }
     Ok(())
 }
 
-fn watch_command(
+fn watch_command<W: Write>(
     watch_dir: Option<PathBuf>,
     output_format: Option<String>,
     machine_name: Option<String>,
+    writer: &mut W,
 ) -> Result<()> {
     // Check for updates, but use cache
     if let Ok(Some(latest_version)) = version::get_latest_version(false) {
-        print_notice!(
-            "🔄 A new version of stitch-sync {} is available.",
-            format!("({})", latest_version).dim()
-        );
-        println!(
-            " → Run '{}' to upgrade.",
-            "stitch-sync update".bright_green()
-        );
+        write_notice!(writer, "🔄 A new version of stitch-sync {} is available.", format!("({})", latest_version).dim());
+        writeln!(writer, " → Run '{}' to upgrade.", "stitch-sync update".bright_green())?;
     }
 
     let config_manager = ConfigManager::new()?;
@@ -268,13 +275,13 @@ fn watch_command(
         .and_then(|m| m.usb_path.as_deref())
         .unwrap_or_default();
     if let Some(usb_target_dir) = find_usb_containing_path(usb_target_path) {
-        println!("💾 USB target directory: {}", usb_target_dir.display());
+        writeln!(writer, "💾 USB target directory: {}", usb_target_dir.display())?;
     }
 
     // Determine accepted formats and preferred format
     let (accepted_formats, preferred_format) = match &machine {
         Some(machine) => {
-            let formats = machine.formats.clone();
+            let formats = machine.file_formats.clone();
             let preferred = output_format
                 .or_else(|| formats.first().map(|s| s.to_string()))
                 .unwrap_or_else(|| DEFAULT_FORMAT.to_string())
@@ -301,36 +308,20 @@ fn watch_command(
     };
 
     if let Some(ref machine) = machine {
-        println!("{} {}", "🧵 Machine:".bright_blue(), machine.name.bold());
+        writeln!(writer, "{} {}", "🧵 Machine:".bright_blue(), machine.name.clone().bold())?;
     }
-    println!(
-        "{} {}",
-        "📁 Watch directory:".bright_blue(),
-        watch_dir.display().to_string().bold()
-    );
+    writeln!(writer, "{} {}", "📁 Watch directory:".bright_blue(), watch_dir.display().to_string().bold())?;
     match accepted_formats.len() {
-        1 => println!(
-            " {} {}",
-            "→ Files will be converted to".bright_blue(),
-            accepted_formats[0].bold()
-        ),
-        _ => println!(
-            " {} {}",
-            "→ Files will be converted to one of:".bright_blue(),
-            accepted_formats.join(", ").bold()
-        ),
+        1 => writeln!(writer, " {} {}", "→ Files will be converted to".bright_blue(), accepted_formats[0].clone().bold())?,
+        _ => writeln!(writer, " {} {}", "→ Files will be converted to one of:".bright_blue(), accepted_formats.join(", ").bold())?,
     }
-    println!(
-        " {} {} {}",
-        "→ Files will be copied into the".bright_blue(),
-        machine
-            .as_ref()
-            .and_then(|m| m.usb_path.as_deref())
-            .unwrap_or(" root ")
-            .bold(),
-        "directory on a mounted USB drive".bright_blue()
-    );
-    println!("\n{}", "Press 'q' to quit".bright_black().italic());
+    writeln!(writer, " {} {} {}", "→ Files will be copied into the".bright_blue(), machine
+        .as_ref()
+        .and_then(|m| m.usb_path.as_deref())
+        .unwrap_or(" root ")
+        .stylize().bold(),
+        "directory on a mounted USB drive".bright_blue())?;
+    writeln!(writer, "\n{}", "Press 'q' to quit".bright_black().italic())?;
 
     services::watch_dir(
         &watch_dir,
@@ -344,21 +335,21 @@ fn watch_command(
     Ok(())
 }
 
-fn update_command(dry_run: bool) -> Result<()> {
+fn update_command<W: Write>(dry_run: bool, writer: &mut W) -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
-    println!("Current version: {}", current_version);
+    writeln!(writer, "Current version: {}", current_version)?;
 
     // Force fresh check for updates
-    println!("Checking for updates...");
+    writeln!(writer, "Checking for updates...")?;
     let latest_version = match version::get_latest_version(true)? {
         Some(version) => version,
         None => {
-            println!("You're already running the latest version!");
+            writeln!(writer, "You're already running the latest version!")?;
             return Ok(());
         }
     };
 
-    println!("New version available: {}", latest_version);
+    writeln!(writer, "New version available: {}", latest_version)?;
 
     // Get platform-specific info
     let (platform, exe_name) = match std::env::consts::OS {
@@ -375,7 +366,7 @@ fn update_command(dry_run: bool) -> Result<()> {
     });
 
     // Download new version
-    println!("⬇️  Downloading new version...");
+    writeln!(writer, "⬇️  Downloading new version...")?;
     let asset_name = format!("stitch-sync-x86_64-{}.tar.gz", platform);
     let download_url = format!(
         "https://github.com/osteele/stitch-sync/releases/download/v{}/{}",
@@ -389,7 +380,7 @@ fn update_command(dry_run: bool) -> Result<()> {
     fs::write(&archive_path, content)?;
 
     // Extract archive
-    println!("⬇️  Extracting update...");
+    writeln!(writer, "⬇️  Extracting update...")?;
     let output = process::Command::new("tar")
         .arg("xzf")
         .arg(&archive_path)
@@ -404,15 +395,15 @@ fn update_command(dry_run: bool) -> Result<()> {
     let current_exe = env::current_exe()?;
 
     if dry_run {
-        println!("Dry run - not installing update");
+        writeln!(writer, "Dry run - not installing update")?;
         return Ok(());
     }
 
     // Replace current executable
-    println!("⬇️  Installing update...");
+    writeln!(writer, "⬇️  Installing update...")?;
     let new_exe = tmp_dir.path().join(exe_name);
     fs::rename(&new_exe, &current_exe)?;
 
-    println!("✅ Successfully updated to version {}", latest_version);
+    writeln!(writer, "✅ Successfully updated to version {}", latest_version)?;
     Ok(())
 }
