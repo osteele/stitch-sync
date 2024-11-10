@@ -1,0 +1,25 @@
+name: Test Install Scripts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-install:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Windows install script
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          irm https://raw.githubusercontent.com/osteele/stitchsync/main/scripts/install.ps1 | iex
+      - name: Run Unix install script
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/osteele/stitchsync/main/scripts/install.sh | bash
+      - name: Verify installation
+        run: stitch-sync --version
