@@ -39,8 +39,16 @@ For the conversion feature:
 
 Run this in the terminal to install the latest version:
 
+macOS/Linux:
+
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/osteele/stitchsync/refs/heads/main/scripts/install.sh)"
+```
+
+Windows:
+
+```powershell
+irm https://raw.githubusercontent.com/osteele/stitchsync/main/scripts/install.ps1 | iex
 ```
 
 ### From source
