@@ -4,7 +4,9 @@
 [![License](https://img.shields.io/github/license/osteele/stitch-sync)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-brightgreen)]()
 
-An automated embroidery file converter that watches for design files and
+<img src="docs/icon.svg" alt="Stitch-sync icon" width="100" style="float: right;">
+
+**Stitch-sync** is an automated embroidery file converter that watches for design files and
 prepares them for your embroidery machine.
 
 It has two features:
