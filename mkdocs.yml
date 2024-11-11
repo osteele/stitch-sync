@@ -11,12 +11,13 @@ theme:
     - search.highlight
 
 nav:
-  - Home: commands.md
-  - Documentation:
-    - Specification: spec.md
-    - Commands: commands.md
-    - README: README.md
+  - Home: index.md
+  - Command Reference: commands.md
+  - Configuration: configuration.md
+  - Troubleshooting: troubleshooting.md
+  - Technical Documentation:
     - Developer Notes: developer-notes.md
+    - Specification: spec.md
 
 markdown_extensions:
   - pymdownx.highlight:

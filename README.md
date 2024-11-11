@@ -1,4 +1,4 @@
-# Stitch-sync
+# Stitch-sync Embroidery File Sync
 [![Cross-Platform Test](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml/badge.svg)](https://github.com/osteele/stitchsync/actions/workflows/crossplatform-test.yml)
 [![Latest Release](https://img.shields.io/github/v/release/osteele/stitch-sync)](https://github.com/osteele/stitch-sync/releases)
 [![License](https://img.shields.io/github/license/osteele/stitch-sync)](LICENSE)
@@ -31,25 +31,19 @@ graph LR
 
 ## Features
 - Automatically monitors directories for new embroidery design files.
-  - The default directory is the user's Downloads directory. Other directories can be specified with the `--dir` option.
+    - The default directory is the user's Downloads directory. Other
+      directories can be specified with the `--dir` option.
 - Converts designs to formats compatible with your embroidery machine
 - Supports any machine format that Ink/Stitch can export
 - Copies converted files to a USB drive
 - Sanitizes output filenames for better compatibility. For example, it removes
   spaces and underscores, since some machines do not recognize files with these
   names.
-  - To do: Only do this if the machine requires it
+    - To do: Only do this if the machine requires it
 - Copies converted files to a subdirectory, for example `EMB/Embf`, for
   machines that require this
 - Database of embroidery machines and their supported formats
 - Cross-platform support (macOS, Windows, Linux) (work in progress)
-
-## Prerequisites
-
-Only if you use the conversion feature:
-
-1. [Inkscape][Inkscape] must be installed on your system
-2. The [ink/stitch extension][inkstitch] must be installed
 
 ## Installation
 
@@ -74,6 +68,13 @@ install [Cygwin][] and then run the macOS/Linux instructions from the Cygwin
 terminal.
 
 [Cygwin]: https://www.cygwin.com/
+
+Only if you use the **conversion feature** (e.g. to convert say DST files to JEF
+files), you need to install:
+
+1. [Inkscape][Inkscape] must be installed on your system
+2. The [ink/stitch extension][inkstitch] must be installed
+
 
 ### From source
 
@@ -211,76 +212,24 @@ E -->|No| G[Skip file]
      - Copies converted and/or compatible files there
 3. Press 'q' to quit the program
 
-## Configuration
-
-The program supports a configuration file located at:
-- Linux/macOS: `~/.config/stitch-sync/config.toml`
-- Windows: `%APPDATA%\stitch-sync\config.toml`
-
-Example configuration:
-```toml
-# Default directory to watch
-watch_dir = "/Users/username/Downloads"
-
-# Default machine
-machine = "Brother PE800"
-```
-
-You can set configuration values using the following commands:
-
-```bash
-# Set default watch directory
-stitch-sync set watch-dir /path/to/directory
-
-# Set default machine
-stitch-sync set machine "Brother PE800"
-
-# Clear a configuration value
-stitch-sync config clear watch-dir
-
-# View current configuration
-stitch-sync config show
-```
-
 ## Supported Platforms
 
 - macOS:
-  - Looks for Inkscape in PATH and `/Applications/Inkscape.app`
-  - Checks `/Volumes` for USB drives
+    - Looks for Inkscape in PATH and `/Applications/Inkscape.app`
+    - Checks `/Volumes` for USB drives
 - Windows:
-  - Looks for Inkscape in PATH and Program Files
-  - Checks all drive letters for USB drives
-  - **Note:** Minimally tested, USB drive detection is experimental
+    - Looks for Inkscape in PATH and Program Files
+    - Checks all drive letters for USB drives
+    - **Note:** Minimally tested, USB drive detection is experimental
 - Linux:
-  - Looks for Inkscape in PATH and common installation directories
-  - Checks `/media/<username>` for USB drives
-  - **Note:** Minimally tested, USB drive detection is experimental
+    - Looks for Inkscape in PATH and common installation directories
+    - Checks `/media/<username>` for USB drives
+    - **Note:** Minimally tested, USB drive detection is experimental
 
 ## Known Limitations
 
 - The list of supported embroidery machines and formats is currently minimal and may contain errors or omissions. Please report any issues or submit pull requests to improve the machine database.
 - USB drive detection and file copying has not been thoroughly tested on Windows and Linux platforms. Use with caution and verify the results. Feedback and contributions to improve cross-platform support are welcome.
-
-## Troubleshooting
-
-### Inkscape Not Found
-
-Make sure Inkscape is installed and accessible. Download from:
-- macOS: [Inkscape for macOS][inkscape-mac]
-- Windows: [Inkscape for Windows][inkscape-win]
-- Linux: Use your package manager or [Inkscape for Linux][inkscape-linux]
-
-### ink/stitch Extension Not Found
-
-1. Download the [ink/stitch extension][inkstitch-install]
-2. Follow the installation instructions for your platform
-3. Restart Inkscape after installation
-
-### Conversion Errors
-
-1. Ensure your DST file is valid
-2. Check that ink/stitch is properly installed
-3. Try converting the file manually in Inkscape to verify it works
 
 ## Contributing
 
