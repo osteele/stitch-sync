@@ -17,8 +17,6 @@ It can also convert files to the correct format for your embroidery machine. For
 example, it can convert a DST file from [TurtleStitch] to a JEF file for Janome
 embroidery machines.
 
-[View on GitHub](https://github.com/osteele/stitch-sync)
-
 ```mermaid
 graph LR
     A[Embroidery file copied<br/>to Downloads directory] --> B{Format<br/>compatible?}
@@ -28,6 +26,8 @@ graph LR
     style A fill:#f0f0f0
     style D fill:#e6ffe6
 ```
+
+[View on GitHub](https://github.com/osteele/stitch-sync)
 
 ## Features
 - Automatically monitors directories for new embroidery design files.
