@@ -56,6 +56,7 @@ stitch-sync/
 1. Install development dependencies:
    - Rust and Cargo (latest stable)
    - Inkscape with ink/stitch extension
+   - Just command runner: `cargo install just`
    - (Linux only) libudev-dev: `sudo apt-get install libudev-dev`
 
 2. Clone and build:
@@ -69,6 +70,26 @@ stitch-sync/
    ```bash
    cargo test
    ```
+
+## Task Runner
+
+The project uses [Just](https://github.com/casey/just) as its command runner.
+Just is a modern alternative to Make, specifically designed for developer
+workflows.
+
+The `justfile` in the project root defines commands for development tasks.
+
+Example usage:
+
+```bash
+just --list  # List all available commands
+
+just bump [minor] # Bump version number (defaults to patch)
+just release # Create and push new release
+just preview-site # Preview documentation
+just publish-site # Publish documentation
+just install-windows # Install on Windows
+```
 
 ## Cross-Platform Development
 
