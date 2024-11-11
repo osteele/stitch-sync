@@ -1,0 +1,38 @@
+site_name: Stitch-sync
+site_description: Automatically convert embroidery files and copy them to USB drives
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+
+nav:
+  - Home: commands.md
+  - Documentation:
+    - Specification: spec.md
+    - Commands: commands.md
+    - README: README.md
+    - Developer Notes: developer-notes.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.inlinehilite
+  - admonition
+  - footnotes
+  - toc:
+      permalink: true
+  - markdown_include.include:
+      base_path: docs
+
+extra_css:
+  - stylesheets/extra.css

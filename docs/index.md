@@ -1,0 +1,5 @@
+---
+hide:
+  - navigation
+---
+{!../README.md!}

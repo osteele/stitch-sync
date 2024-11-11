@@ -19,6 +19,16 @@ embroidery machines.
 
 [View on GitHub](https://github.com/osteele/stitch-sync)
 
+```mermaid
+graph LR
+    A[Embroidery file copied<br/>to Downloads directory] --> B{Format<br/>compatible?}
+    B -->|Yes| D[Copy to USB]
+    B -->|No| C[Convert format<br/>using ink/stitch]
+    C --> D
+    style A fill:#f0f0f0
+    style D fill:#e6ffe6
+```
+
 ## Features
 - Automatically monitors directories for new embroidery design files.
   - The default directory is the user's Downloads directory. Other directories can be specified with the `--dir` option.
