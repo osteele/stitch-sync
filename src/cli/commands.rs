@@ -358,8 +358,7 @@ fn watch_command<W: Write>(
             .collect::<Vec<_>>(),
         &preferred_format,
         inkscape,
-    );
-    Ok(())
+    )
 }
 
 fn update_command<W: Write>(dry_run: bool, writer: &mut W) -> Result<()> {
