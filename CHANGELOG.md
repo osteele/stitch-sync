@@ -17,12 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FILE_SETTLE_DURATION constant for file modification debounce delay
 - CONTRIBUTING.md with comprehensive contribution guidelines
 - CHANGELOG.md to track version history
+- SECURITY.md with security policy and vulnerability reporting process
+- Dependabot configuration for automated dependency updates
+- Security maintenance documentation in docs/security-maintenance.md
+- Security section in README.md with dependency update instructions
 - Better error context messages throughout the codebase
 
 ### Fixed
 - Removed panic-prone unwrap() calls in terminal raw mode operations
 - Improved graceful error handling for keyboard and file system events
 - Fixed potential crashes in watch loop when terminal mode fails
+
+### Security
+- Established security policy for vulnerability reporting
+- Added automated dependency scanning via Dependabot
+- Documented security maintenance procedures
+- Note: GitHub identified 5 dependency vulnerabilities (1 high, 3 moderate, 1 low)
+  Users should run `cargo update` to address these issues
 
 ## [0.1.3] - 2024-XX-XX
 
