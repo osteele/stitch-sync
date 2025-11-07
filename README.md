@@ -282,10 +282,22 @@ Make sure Inkscape is installed and accessible. Download from:
 2. Check that ink/stitch is properly installed
 3. Try converting the file manually in Inkscape to verify it works
 
+## Security
+
+For information about security vulnerabilities and how to report them, please see our [Security Policy](SECURITY.md).
+
+To update dependencies and address security issues:
+```bash
+cargo install cargo-audit
+cargo audit
+cargo update
+```
+
 ## Contributing
 
-Contributions are welcome! Developer documentation is available in the [docs/] directory.
-Please feel free to submit a Pull Request.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Developer documentation is available in the [docs/] directory.
 
 [docs/]: https://github.com/osteele/stitch-sync/tree/main/docs
 

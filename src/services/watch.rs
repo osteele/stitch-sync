@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -24,9 +25,10 @@ use crate::services::usb_drive::unmount_usb_volume;
 use crate::services::{ file_conversion::handle_file_detection, inkscape::Inkscape };
 use crate::utils::WATCH_POLL_INTERVAL;
 
-// Option 1: Scanning folder animation
+// Animation and timing constants
 const CURSOR_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const FRAME_DURATION: Duration = Duration::from_millis(200);
+const FILE_SETTLE_DURATION: Duration = Duration::from_millis(150);
 
 #[derive(Debug)]
 pub enum WatcherEvent {
@@ -81,46 +83,36 @@ pub fn watch(
     accepted_formats: &[&str],
     preferred_format: &str,
     inkscape: Option<Inkscape>,
-) {
+) -> Result<()> {
     // Set up signal handlers
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     ctrlc::set_handler(move || {
         r.store(false, Ordering::SeqCst);
     })
-    .expect("Error setting Ctrl-C handler");
+    .context("Failed to set Ctrl-C handler")?;
 
     if !watch_dir.exists() {
-        println!("Directory does not exist: {}", watch_dir.display());
-        return;
+        anyhow::bail!("Directory does not exist: {}", watch_dir.display());
     }
 
     let (fs_tx, rx) = channel();
 
     // Create watcher with simplified event sending
-    let mut watcher = match RecommendedWatcher::new(
+    let mut watcher = RecommendedWatcher::new(
         move |res| {
             if let Err(e) = fs_tx.send(WatcherEvent::File(res)) {
                 eprintln!("Error sending event through channel: {:?}", e);
             }
         },
         Config::default(),
-    ) {
-        Ok(w) => w,
-        Err(e) => {
-            eprintln!("Failed to create watcher: {:?}", e);
-            return;
-        }
-    };
+    )
+    .context("Failed to create file system watcher")?;
 
     // Set up watching with error handling
-    match watcher.watch(watch_dir, RecursiveMode::NonRecursive) {
-        Ok(_) => (),
-        Err(e) => {
-            eprintln!("Failed to watch directory: {:?}", e);
-            return;
-        }
-    };
+    watcher
+        .watch(watch_dir, RecursiveMode::NonRecursive)
+        .context(format!("Failed to watch directory: {}", watch_dir.display()))?;
 
     watch_directory(
         watch_dir,
@@ -129,8 +121,9 @@ pub fn watch(
         usb_target_path,
         accepted_formats,
         preferred_format,
-    );
+    )?;
     println!("File watcher stopped.");
+    Ok(())
 }
 
 pub fn watch_directory(
@@ -140,14 +133,14 @@ pub fn watch_directory(
     usb_target_path: &Option<&str>,
     accepted_formats: &[&str],
     preferred_format: &str,
-) {
+) -> Result<()> {
     let mut file_cache = FileCache::new();
     let mut frame_index = 0;
     let mut last_frame = SystemTime::now();
 
-    enable_raw_mode().unwrap();
+    enable_raw_mode().context("Failed to enable raw terminal mode")?;
     defer! {
-        disable_raw_mode().unwrap();
+        let _ = disable_raw_mode();
         // Clear the cursor line when exiting
         print!("\r\x1B[K");
         let _ = io::stdout().flush();
@@ -167,7 +160,9 @@ pub fn watch_directory(
 
         // Check both keyboard and file events in each iteration
         while let Ok(event) = event_rx.try_recv() {
-            disable_raw_mode().unwrap();
+            if let Err(e) = disable_raw_mode() {
+                eprintln!("Warning: Failed to disable raw mode: {}", e);
+            }
             // Clear the cursor line before processing file
             print!("\r\x1B[K");
             let _ = io::stdout().flush();
@@ -177,7 +172,7 @@ pub fn watch_directory(
                     let paths = match event.kind {
                         notify::EventKind::Create(_) => event.paths,
                         notify::EventKind::Modify(_) => {
-                            sleep(Duration::from_millis(150)); // give the file time to settle
+                            sleep(FILE_SETTLE_DURATION);
                             event.paths
                         }
                         _ => vec![],
@@ -201,25 +196,46 @@ pub fn watch_directory(
                 }
                 WatcherEvent::File(Err(e)) => println!("Error receiving file event: {}", e),
             }
-            enable_raw_mode().unwrap();
+            if let Err(e) = enable_raw_mode() {
+                eprintln!("Warning: Failed to enable raw mode: {}", e);
+            }
         }
 
         // Check for keyboard input
-        if event::poll(WATCH_POLL_INTERVAL).unwrap() {
-            if let Event::Key(key) = event::read().unwrap() {
-                disable_raw_mode().unwrap();
-                match handle_key_event(key) {
-                    Ok(true) => break 'main, // Exit requested
-                    Ok(false) => (),         // Continue watching
+        match event::poll(WATCH_POLL_INTERVAL) {
+            Ok(true) => {
+                match event::read() {
+                    Ok(Event::Key(key)) => {
+                        if let Err(e) = disable_raw_mode() {
+                            eprintln!("Warning: Failed to disable raw mode: {}", e);
+                        }
+                        match handle_key_event(key) {
+                            Ok(true) => break 'main, // Exit requested
+                            Ok(false) => (),         // Continue watching
+                            Err(e) => {
+                                eprintln!("Error handling key event: {}", e);
+                                break 'main;
+                            }
+                        }
+                        if let Err(e) = enable_raw_mode() {
+                            eprintln!("Warning: Failed to enable raw mode: {}", e);
+                        }
+                    }
+                    Ok(_) => {} // Ignore non-key events
                     Err(e) => {
-                        eprintln!("Error handling key event: {}", e);
+                        eprintln!("Error reading keyboard event: {}", e);
                         break 'main;
                     }
                 }
             }
-            enable_raw_mode().unwrap();
+            Ok(false) => {} // No events available
+            Err(e) => {
+                eprintln!("Error polling for events: {}", e);
+                break 'main;
+            }
         }
     }
+    Ok(())
 }
 
 // Returns true if the program should exit
